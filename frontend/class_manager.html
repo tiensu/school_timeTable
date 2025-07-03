@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Class Manager</title>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    table, th, td { border: 1px solid #aaa; border-collapse: collapse; padding: 5px; }
+    input { margin: 5px; }
+  </style>
+</head>
+<body>
+  <h1>Quản lý lớp học</h1>
+
+  <h3>Thêm lớp học mới</h3>
+  <input type="text" id="className" placeholder="Tên lớp (VD: 10A1)">
+  <input type="number" id="classGrade" placeholder="Khối (VD: 10)">
+  <input type="number" id="classSize" placeholder="Sĩ số">
+  <button onclick="addClass()">Thêm lớp</button>
+
+  <h3>Danh sách lớp học</h3>
+  <table id="classTable">
+    <thead>
+      <tr><th>ID</th><th>Tên lớp</th><th>Khối</th><th>Sĩ số</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+<script>
+  async function fetchClasses() {
+    const res = await fetch('http://localhost:8000/classes');
+    const data = await res.json();
+    const table = document.querySelector("#classTable tbody");
+    table.innerHTML = "";
+    data.forEach(cls => {
+      table.innerHTML += `<tr><td>${cls.id}</td><td>${cls.name}</td><td>${cls.grade}</td><td>${cls.student_count}</td></tr>`;
+    });
+  }
+
+  async function addClass() {
+    const name = document.getElementById("className").value;
+    const grade = parseInt(document.getElementById("classGrade").value);
+    const size = parseInt(document.getElementById("classSize").value);
+    await fetch('http://localhost:8000/classes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, grade, student_count: size })
+    });
+    fetchClasses();
+  }
+
+  fetchClasses();
+</script>
+</body>
+</html>

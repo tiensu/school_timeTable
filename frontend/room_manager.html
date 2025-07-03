@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Quản lý phòng học</title>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    table, th, td { border: 1px solid #aaa; border-collapse: collapse; padding: 5px; }
+    input { margin: 5px; }
+  </style>
+</head>
+<body>
+  <h1>Quản lý phòng học</h1>
+
+  <h3>Thêm mới</h3>
+  <input type="text" id="roomName" placeholder="Tên phòng">
+  <input type="text" id="roomType" placeholder="Loại phòng (thường, lab, thể chất, ...)">
+  <button onclick="addItem()">Thêm</button>
+
+  <h3>Danh sách</h3>
+  <table id="itemTable">
+    <thead><tr><th>ID</th><th>Tên phòng</th><th>Loại phòng</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+<script>
+  async function fetchItems() {
+    const res = await fetch('http://localhost:8000/rooms');
+    const data = await res.json();
+    const table = document.querySelector("#itemTable tbody");
+    table.innerHTML = "";
+    data.forEach(r => {
+      table.innerHTML += `<tr><td>r.id</td><td>r.name</td><td>r.room_type</td></tr>`;
+    });
+  }
+
+  async function addItem() {
+    await fetch('http://localhost:8000/rooms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({roomName: document.getElementById("roomName").value, roomType: document.getElementById("roomType").value})
+    });
+    fetchItems();
+  }
+
+  fetchItems();
+</script>
+</body>
+</html>

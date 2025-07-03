@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Quản lý giáo viên</title>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    table, th, td { border: 1px solid #aaa; border-collapse: collapse; padding: 5px; }
+    input { margin: 5px; }
+  </style>
+</head>
+<body>
+  <h1>Quản lý giáo viên</h1>
+
+  <h3>Thêm mới</h3>
+  <input type="text" id="teacherName" placeholder="Tên giáo viên">
+  <input type="email" id="teacherEmail" placeholder="Email">
+  <input type="number" id="teacherMax" placeholder="Số tiết tối đa/tuần">
+  <button onclick="addItem()">Thêm</button>
+
+  <h3>Danh sách</h3>
+  <table id="itemTable">
+    <thead><tr><th>ID</th><th>Tên</th><th>Email</th><th>Số tiết/tuần</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+<script>
+  async function fetchItems() {
+    const res = await fetch('http://localhost:8000/teachers');
+    const data = await res.json();
+    const table = document.querySelector("#itemTable tbody");
+    table.innerHTML = "";
+    data.forEach(r => {
+      table.innerHTML += `<tr><td>t.id</td><td>t.name</td><td>t.email</td><td>t.max_weekly_sessions</td></tr>`;
+    });
+  }
+
+  async function addItem() {
+    await fetch('http://localhost:8000/teachers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({teacherName: document.getElementById("teacherName").value, teacherEmail: document.getElementById("teacherEmail").value, teacherMax: document.getElementById("teacherMax").value})
+    });
+    fetchItems();
+  }
+
+  fetchItems();
+</script>
+</body>
+</html>
