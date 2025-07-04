@@ -9,35 +9,42 @@
 	<link rel="stylesheet" href="static/css/style.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-    <style>
-        /* Style giống mẫu của bạn, lược bớt cho gọn */
-        body { background: #f5f5f5; font-family: 'Varela Round', sans-serif; font-size: 13px; }
-        .table-wrapper { background: #fff; padding: 20px; border-radius: 3px; margin-top: 30px; box-shadow: 0 1px 1px rgba(0,0,0,.05); }
-        .table-title { background: #435d7d; color: #fff; padding: 16px 25px; border-radius: 3px 3px 0 0; }
-        .table-title h2 { margin: 0; font-size: 24px; }
-        .table-title .btn { color: #fff; border: none; min-width: 50px; border-radius: 2px; margin-left: 10px; }
-        .table td a.edit { color: #FFC107; }
-        .table td a.delete { color: #F44336; }
-        .custom-checkbox input[type="checkbox"] { opacity: 0; position: absolute; }
-    </style>
 </head>
 <body>
 <div class="container">
     <div class="table-wrapper">
-        <div class="table-title">
-            <div class="row">
-                <div class="col-sm-6"><h2>Manage <b>Classes</b></h2></div>
-                <div class="col-sm-6 text-right">
-                    <button class="btn btn-danger" data-toggle="modal" data-target="#confirmDeleteModal"><i class="material-icons">&#xE15C;</i> <span>Delete</span></button>
-                    <button class="btn btn-success" data-toggle="modal" data-target="#addClassModal"><i class="material-icons">&#xE147;</i> <span>Add New Class</span></button>
-                </div>
-            </div>
+      <div class="table-title">
+        <div class="row align-items-center">
+          <div class="col-md-3 col-sm-12">
+            <h2 class="text-white m-0">Manage <b>Classes</b></h2>
+          </div>
+
+          <div class="col-md-3 col-sm-6 d-flex gap-2 align-items-center mt-2 mt-md-0">
+            <input type="file" id="excelFile" accept=".xlsx" class="form-control form-control-sm p-1" style="max-width: 180px;">
+            <button class="btn btn-info btn-sm" onclick="uploadExcel()">
+              <i class="material-icons">&#xE2C6;</i> Import Excel
+            </button>
+          </div>
+
+          <div class="col-md-3 col-sm-6 mt-2 mt-md-0">
+            <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Tìm kiếm theo tên lớp...">
+          </div>
+
+          <div class="col-md-3 col-sm-12 text-md-right mt-2 mt-md-0 d-flex justify-content-md-end gap-2">
+            <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#confirmDeleteModal">
+              <i class="material-icons">&#xE15C;</i> Delete
+            </button>
+            <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#addClassModal">
+              <i class="material-icons">&#xE147;</i> Add New Class
+            </button>
+          </div>
         </div>
+      </div>
+
         <table class="table table-striped table-hover">
             <thead>
                 <tr>
                     <th><input type="checkbox" id="selectAll"/></th>
-					<th>No.</th>
                     <th>Name</th>
                     <th>Grade</th>
                     <th>Student Count</th>
@@ -51,7 +58,6 @@
         <div class="clearfix">
             <div class="hint-text" id="hintText">Showing 0 of 0 entries</div>
             <ul class="pagination" id="pagination">
-                <!-- Pagination will be inserted -->
             </ul>
         </div>
     </div>
@@ -89,7 +95,28 @@
   </div>
 </div>
 
-<!-- Modal xác nhận xoá -->
+<!-- Delete Single Class Modal -->
+<div id="deleteSingleModal" class="modal fade">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h4 class="modal-title">Xác nhận xóa lớp học</h4>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="deleteMessage">Bạn có chắc chắn muốn xóa lớp này?</p>
+        <input type="hidden" id="deleteClassId">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteSingleBtn">Xóa</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal xác nhận xoá nhiều-->
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" role="dialog" aria-labelledby="confirmModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
@@ -110,7 +137,6 @@
   </div>
 </div>
 
-<!-- Kết quả xóa -->
 <!-- Toast container -->
 <div id="toastContainer" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;"></div>
 
@@ -119,42 +145,203 @@
 <script>
 let currentPage = 1;
 const pageSize = 5;
+let currentSearch = ""; // Biến để lưu từ khoá tìm kiếm
 
-async function fetchClasses() {
-  try {
-    const res = await fetch('http://localhost:8000/classes');
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+// async function fetchClasses() {
+//   try {
+//     const res = await fetch('http://localhost:8000/classes');
+//     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     
-    const data = await res.json();
-    const tableBody = document.querySelector("#classTableBody");
-    tableBody.innerHTML = "";
+//     const data = await res.json();
+//     const tableBody = document.querySelector("#classTableBody");
+//     tableBody.innerHTML = "";
 
-    data.forEach((cls, index) => {
-      const row = document.createElement("tr");
+//     data.forEach((cls, index) => {
+//       const row = document.createElement("tr");
 
-      row.innerHTML = `
-        <td>
-          <span class="custom-checkbox">
-            <input type="checkbox" class="row-checkbox" data-id="${cls.id}" id="checkbox${cls.id}">
-            <label for="checkbox${cls.id}"></label>
-          </span>
+//       row.innerHTML = `
+//         <td>
+//           <span class="custom-checkbox">
+//             <input type="checkbox" class="row-checkbox" data-id="${cls.id}" id="checkbox${cls.id}">
+//             <label for="checkbox${cls.id}"></label>
+//           </span>
+//         </td>
+//         <td>${index + 1}</td>
+//         <td>${cls.name}</td>
+//         <td>${cls.grade}</td>
+//         <td>${cls.student_count}</td>
+//         <td>
+//           <a href="#editClassModal" class="edit" data-toggle="modal" data-id="${cls.id}"><i class="material-icons" data-toggle="tooltip" title="Edit">&#xE254;</i></a>
+// 		  <a href="#" class="delete" onclick="deleteClassById(${cls.id})"><i class="material-icons" title="Delete">&#xE872;</i></a>
+//         </td>
+//       `;
+
+//       tableBody.appendChild(row);
+//     });
+
+//   } catch (error) {
+//     console.error("❌ Failed to fetch class data:", error);
+//     alert("Không thể tải dữ liệu lớp học. Vui lòng kiểm tra kết nối đến backend.");
+//   }
+// }
+
+async function fetchClasses(page = 1) {
+  currentPage = page;
+  const skip = (page - 1) * pageSize;
+  const searchParam = encodeURIComponent(currentSearch);
+
+  try {
+    const res = await fetch(`http://localhost:8000/classes?skip=${skip}&limit=${pageSize}&search=${searchParam}`);
+    const result = await res.json();
+
+    const data = result.data;
+    console.log("Fetched classes:", result);
+    const total = result.total;
+    // const total = 100; // Giả sử tổng số lớp là 100, bạn có thể thay bằng giá trị thực từ backend
+    const totalPages = Math.ceil(total / pageSize);
+
+    // render bảng
+    const table = document.querySelector("#classTableBody");
+    table.innerHTML = "";
+    data.forEach(cls => {
+      table.innerHTML += `
+        <tr>
+          <td><input type="checkbox" class="row-checkbox" value="${cls.id}"></td>
+          <td>${cls.name}</td>
+          <td>${cls.grade}</td>
+          <td>${cls.student_count}</td>
+          <td>
+          <a href="javascript:void(0)" class="edit" onclick="enableEdit(this, ${cls.id})">
+            <i class="material-icons" data-toggle="tooltip" title="Sửa">&#xE254;</i>
+          </a>
+          <a href="javascript:void(0)" class="save d-none" style="display: none;" onclick="saveEdit(this, ${cls.id})">
+            <i class="material-icons" data-toggle="tooltip" title="Lưu">&#xE161;</i>
+          </a>
+          <a href="#" class="delete" onclick="showDeleteModal(${cls.id}, '${cls.name}')"><i class="material-icons" title="Delete">&#xE872;</i>
+          </a>
         </td>
-        <td>${index + 1}</td>
-        <td>${cls.name}</td>
-        <td>${cls.grade}</td>
-        <td>${cls.student_count}</td>
-        <td>
-          <a href="#editClassModal" class="edit" data-toggle="modal" data-id="${cls.id}"><i class="material-icons" data-toggle="tooltip" title="Edit">&#xE254;</i></a>
-		  <a href="#" class="delete" onclick="deleteClassById(${cls.id})"><i class="material-icons" title="Delete">&#xE872;</i></a>
-        </td>
+
+        </tr>
       `;
-
-      tableBody.appendChild(row);
     });
 
-  } catch (error) {
-    console.error("❌ Failed to fetch class data:", error);
-    alert("Không thể tải dữ liệu lớp học. Vui lòng kiểm tra kết nối đến backend.");
+    // render phân trang
+    renderPagination(totalPages, currentPage);
+
+    // ✅ Cập nhật hint text
+    const startEntry = skip + 1;
+    const endEntry = Math.min(skip + data.length, total);
+    const hintText = document.getElementById("hintText");
+    if (total === 0) {
+      hintText.textContent = `Showing 0 of 0 entries`;
+    } else {
+      hintText.textContent = `Showing ${startEntry} to ${endEntry} of ${total} entries`;
+    }
+    
+  } catch (err) {
+    showToast("Lỗi khi tải danh sách lớp học", "danger");
+    console.error(err);
+  }
+}
+
+function enableEdit(el, classId) {
+  const row = el.closest("tr");
+  row.querySelectorAll("td:not(:first-child):not(:last-child)").forEach(td => {
+    const value = td.textContent;
+    td.innerHTML = `<input type="text" class="form-control form-control-sm" value="${value}">`;
+  });
+
+  // row.querySelector(".edit").classList.add("d-none");
+  // row.querySelector(".save").classList.remove("d-none");
+  row.querySelector(".edit").style.display = "none";
+  row.querySelector(".save").style.display = "inline-block";
+  row.querySelector(".delete").style.display = "none";
+
+}
+
+async function saveEdit(el, classId) {
+  const row = el.closest("tr");
+  const inputs = row.querySelectorAll("td input");
+  const name = inputs[1].value;
+  const grade = parseInt(inputs[2].value);
+  const student_count = parseInt(inputs[3].value);
+  const updatedValues = {
+    name: name,
+    grade: grade,
+    student_count: student_count
+  };
+  // console.log("Updated values:", updatedValues);
+  if (!validateClassData(name, grade, student_count)) return;
+
+  const res = await fetch(`http://localhost:8000/classes/${classId}`, {
+    method: "PUT",
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updatedValues)
+  });
+  const result = await res.json();
+  showToast(result.message || "Đã cập nhật lớp");
+
+  // Set lại từng cell bằng đúng giá trị bạn vừa dùng
+  // Quay lại hiển thị bình thường
+  row.querySelectorAll("td:not(:first-child):not(:last-child)").forEach((td, idx) => {
+    if (idx === 0) td.innerHTML = updatedValues.name;
+    if (idx === 1) td.innerHTML = updatedValues.grade;
+    if (idx === 2) td.innerHTML = updatedValues.student_count;
+  });
+
+  row.querySelector(".edit").style.display = "inline-block";
+  row.querySelector(".save").style.display = "none";
+  row.querySelector(".delete").style.display = "inline-block";
+}
+
+
+function renderPagination(totalPages, currentPage) {
+  const container = document.getElementById("pagination");
+  container.innerHTML = "";
+
+  function createPageButton(text, page, isActive = false, isDisabled = false) {
+    const btn = document.createElement("button");
+    btn.className = `btn btn-sm mx-1 ${isActive ? "btn-primary" : "btn-outline-primary"}`;
+    btn.textContent = text;
+    btn.disabled = isDisabled;
+    btn.onclick = () => fetchClasses(page);
+    return btn;
+  }
+
+  container.appendChild(createPageButton("Previous", currentPage - 1, false, currentPage === 1));
+
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) {
+      container.appendChild(createPageButton(i, i, i === currentPage));
+    }
+  } else {
+    container.appendChild(createPageButton(1, 1, 1 === currentPage));
+
+    if (currentPage > 4) {
+      container.appendChild(createEllipsis());
+    }
+
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+
+    for (let i = start; i <= end; i++) {
+      container.appendChild(createPageButton(i, i, i === currentPage));
+    }
+
+    if (currentPage < totalPages - 3) {
+      container.appendChild(createEllipsis());
+    }
+
+    container.appendChild(createPageButton(totalPages, totalPages, totalPages === currentPage));
+  }
+
+  container.appendChild(createPageButton("Next", currentPage + 1, false, currentPage === totalPages));
+
+  function createEllipsis() {
+    const span = document.createElement("span");
+    span.className = "mx-1";
+    span.textContent = "...";
+    return span;
   }
 }
 
@@ -163,10 +350,7 @@ async function addClass() {
   const grade = parseInt(document.getElementById("classGrade").value);
   const size = parseInt(document.getElementById("classSize").value);
 
-  if (!name || isNaN(grade) || isNaN(size)) {
-    alert("Vui lòng điền đầy đủ thông tin lớp học.");
-    return;
-  }
+  if (!validateClassData(name, grade, size)) return;
 
   try {
     const response = await fetch("http://localhost:8000/classes", {
@@ -200,13 +384,55 @@ async function addClass() {
   }
 }
 
+async function uploadExcel() {
+  const fileInput = document.getElementById("excelFile");
+  const file = fileInput.files[0];
+  if (!file) {
+    showToast("Vui lòng chọn file Excel", "danger");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const res = await fetch("http://localhost:8000/classes/import", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await res.json();
+    showToast(result.message || "Import thành công", "success");
+    fetchClasses(); // Load lại danh sách lớp
+    fileInput.value = ""; // Reset file input
+  } catch (error) {
+    showToast("Đã xảy ra lỗi khi import file", "danger");
+  }
+}
+
 function goToPage(page) {
     currentPage = page;
     fetchClasses();
 }
 
+function validateClassData(name, grade, student_count) {
+  if (!name || name.trim() === "") {
+    showToast("Tên lớp không được để trống", "danger");
+    return false;
+  }
+  if (isNaN(grade) || grade < 1 || grade > 12) {
+    showToast("Khối lớp phải là số từ 1 đến 12", "danger");
+    return false;
+  }
+  if (isNaN(student_count) || student_count < 1 || student_count > 100) {
+    showToast("Sĩ số lớp phải là số từ 1 đến 100", "danger");
+    return false;
+  }
+  return true;
+}
+
+
 async function deleteClassById(classId) {
-  if (!confirm("Bạn có chắc chắn muốn xóa lớp này?")) return;
 
   try {
     const res = await fetch(`http://localhost:8000/classes/${classId}`, {
@@ -217,12 +443,19 @@ async function deleteClassById(classId) {
       const error = await res.json();
       throw new Error(error.detail || "Lỗi khi xóa lớp.");
     }
-
+    showToast("Xóa lớp thành công", "success");
     fetchClasses(); // reload lại bảng
   } catch (err) {
     console.error("❌ Xóa lớp thất bại:", err);
     alert("Lỗi: " + err.message);
   }
+}
+
+function showDeleteModal(classId, className) {
+  document.getElementById("deleteClassId").value = classId;
+  document.getElementById("deleteMessage").textContent =
+    `Bạn có chắc chắn muốn xóa lớp "${className}" không?`;
+  $("#deleteSingleModal").modal("show");
 }
 
 function showToast(message, type = "success") {
@@ -275,14 +508,13 @@ async function deleteSelectedClasses() {
 	$('#confirmDeleteModal').modal('hide');
 	showToast("Xóa lớp thành công", "success");  // màu xanh
 
+  $("#selectAll").prop("checked", false);
+
 	fetchClasses();  // Refresh danh sách
   } catch (err) {
     showToast("Xảy ra lỗi khi xóa", "danger");   // màu đỏ
   }
 }
-
-
-
 
 $(document).ready(function () {
 	$("#confirmDeleteBtn").click(function() {
@@ -301,10 +533,22 @@ $(document).ready(function () {
     $("#selectAll").prop("checked", all === checked);
   });
 
+  $("#searchInput").keyup(function() {
+    const searchValue = $(this).val().trim();
+    currentSearch = searchValue; // Cập nhật biến tìm kiếm
+    fetchClasses(1); // Tải lại trang đầu tiên với từ khóa tìm kiếm mới
+  });
+
+  $("#confirmDeleteSingleBtn").click(function() {
+    const classId = document.getElementById("deleteClassId").value;
+    deleteClassById(classId);
+    $("#deleteSingleModal").modal("hide");
+  });
+
 });
 
 
-$(document).ready(fetchClasses);
+$(document).ready(fetchClasses(1)); // Load trang đầu tiên khi DOM sẵn sàng
 </script>
 </body>
 </html>

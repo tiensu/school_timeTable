@@ -12,8 +12,9 @@ class ClassCreate(ClassBase):
 
 class ClassRead(ClassBase):
     id: int
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 # ===== TEACHERS =====
 class TeacherBase(BaseModel):

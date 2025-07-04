@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy.orm import Session
 from fastapi.responses import FileResponse
+import pandas as pd
 from app.models.database import SessionLocal
 from app.models.database import Class, Teacher, Subject, Room, Assignment
 from app.models import schemas
 from pydantic import BaseModel
 import os
+import io
+from loguru import logger
 
 router = APIRouter()
 
@@ -53,9 +56,49 @@ def create_class(item: schemas.ClassCreate, db: Session = Depends(get_db)):
     db.refresh(db_item)
     return db_item
 
-@router.get("/classes", response_model=list[schemas.ClassRead])
-def list_classes(db: Session = Depends(get_db)):
-    return db.query(Class).all()
+@router.post("/classes/import")
+async def import_classes(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    contents = await file.read()
+    df = pd.read_excel(io.BytesIO(contents))
+    imported = 0
+    for _, row in df.iterrows():
+        class_obj = Class(name=row['name'], grade=int(row['grade']), student_count=int(row['student_count']))
+        db.add(class_obj)
+        imported += 1
+    db.commit()
+    return {"message": f"Đã import thành công {imported} lớp học"}
+
+@router.get("/classes")
+def get_classes(skip: int = 0, limit: int = 10, search: str = ""):
+    session = SessionLocal()
+    query = session.query(Class)
+    if search:
+        query = query.filter(Class.name.ilike(f"%{search}%"))
+    total = query.count()
+    classes = query.offset(skip).limit(limit).all()
+    session.close()
+    return {
+        "data": [schemas.ClassRead.from_orm(cls) for cls in classes],
+        "total": total
+    }
+
+@router.get("/classes/count")
+def get_class_count(db: Session = Depends(get_db)):
+    return {"count": db.query(Class).count()}
+
+@router.put("/classes/{class_id}")
+def update_class(class_id: int, class_update: schemas.ClassCreate, db: Session = Depends(get_db)):
+    logger.info(f"Updating class with ID: {class_id} with data: {class_update}")
+    db_class = db.query(Class).filter(Class.id == class_id).first()
+    if not db_class:
+        raise HTTPException(status_code=404, detail="Class not found")
+
+    db_class.name = class_update.name
+    db_class.grade = class_update.grade
+    db_class.student_count = class_update.student_count
+    db.commit()
+    return {"message": f"Class {class_id} updated successfully"}
+
 
 # DELETE /classes/{class_id}
 @router.delete("/classes/{class_id}")
