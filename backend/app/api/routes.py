@@ -60,13 +60,33 @@ def create_class(item: schemas.ClassCreate, db: Session = Depends(get_db)):
 async def import_classes(file: UploadFile = File(...), db: Session = Depends(get_db)):
     contents = await file.read()
     df = pd.read_excel(io.BytesIO(contents))
-    imported = 0
+    
+    imported_count = 0
+    duplicated = []
+
     for _, row in df.iterrows():
-        class_obj = Class(name=row['name'], grade=int(row['grade']), student_count=int(row['student_count']))
+        name = str(row['name']).strip()
+        grade = int(row['grade'])
+        student_count = int(row['student_count'])
+
+        # Kiểm tra lớp đã tồn tại
+        existing = db.query(Class).filter(Class.name == name).first()
+        if existing:
+            duplicated.append(name)
+            continue
+
+        # Thêm lớp mới
+        class_obj = Class(name=name, grade=grade, student_count=student_count)
         db.add(class_obj)
-        imported += 1
+        imported_count += 1
+
     db.commit()
-    return {"message": f"Đã import thành công {imported} lớp học"}
+
+    return {
+        "message": f"Đã import thành công {imported_count} lớp học",
+        "imported_count": imported_count,
+        "duplicated": duplicated
+    }
 
 @router.get("/classes")
 def get_classes(skip: int = 0, limit: int = 10, search: str = ""):
@@ -77,10 +97,21 @@ def get_classes(skip: int = 0, limit: int = 10, search: str = ""):
     total = query.count()
     classes = query.offset(skip).limit(limit).all()
     session.close()
+    # return {
+    #     "data": [schemas.ClassRead.from_orm(cls) for cls in classes],
+    #     "total": total
+    # }
     return {
-        "data": [schemas.ClassRead.from_orm(cls) for cls in classes],
+        "data": [
+            {
+                **schemas.ClassRead.from_orm(cls).dict(),
+                "index": skip + i + 1  # STT thực tế
+            }
+            for i, cls in enumerate(classes)
+        ],
         "total": total
     }
+
 
 @router.get("/classes/count")
 def get_class_count(db: Session = Depends(get_db)):
@@ -97,19 +128,20 @@ def update_class(class_id: int, class_update: schemas.ClassCreate, db: Session =
     db_class.grade = class_update.grade
     db_class.student_count = class_update.student_count
     db.commit()
-    return {"message": f"Class {class_id} updated successfully"}
+    return {"message": f"Cập nhập thông tin lớp {class_update.name} thành công!"}
 
 
 # DELETE /classes/{class_id}
 @router.delete("/classes/{class_id}")
 def delete_class(class_id: int, db: Session = Depends(get_db)):
-    cls = db.query(Class).filter(Class.id == class_id).first()
-    if not cls:
+    logger.info(f'Deleting class {class_id}')
+    db_class = db.query(Class).filter(Class.id == class_id).first()
+    if not db_class:
         raise HTTPException(status_code=404, detail="Class not found")
 
-    db.delete(cls)
+    db.delete(db_class)
     db.commit()
-    return {"message": f"Class with id {class_id} deleted successfully"}
+    return {"message": f"Xóa lớp {db_class.name} thành công!"}
 # Schema input
 class ClassDeleteRequest(BaseModel):
     class_ids: list[int]
@@ -122,7 +154,7 @@ def delete_multiple_classes(req: ClassDeleteRequest, db: Session = Depends(get_d
     if deleted_count == 0:
         raise HTTPException(status_code=404, detail="No matching classes found to delete.")
     
-    return {"deleted": deleted_count, "message": f"{deleted_count} classes deleted successfully."}
+    return {"deleted": deleted_count, "message": f"Đã xóa {deleted_count} lớp thành công!"}
 
 # ========== TEACHERS ==========
 @router.post("/teachers", response_model=schemas.TeacherRead)

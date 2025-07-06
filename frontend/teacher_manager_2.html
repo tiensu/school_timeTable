@@ -20,12 +20,12 @@
             style="border-radius: 4px;">
             <div class="d-flex align-items-center flex-wrap">
                 <h5 class="mb-0 mr-4 font-weight-bold"><i class="fas fa-chalkboard mr-2"></i>Quản lý <span
-                        class="text-info">Lớp học</span></h5>
+                        class="text-info">Giáo viên</span></h5>
             </div>
 
             <div class="d-flex align-items-center flex-wrap">
                 <input type="text" id="searchInput" class="form-control form-control-sm mr-2"
-                    placeholder="Tìm kiếm theo tên lớp..." style="min-width: 200px;">
+                    placeholder="Tìm kiếm theo tên giáo viên..." style="min-width: 200px;">
             </div>
 
             <div class="d-flex align-items-center flex-wrap mr-2">
@@ -49,21 +49,23 @@
 
             <div class="d-flex align-items-center flex-wrap">
                 <button class="btn btn-success btn-sm mr-2" data-toggle="modal" data-target="#addClassModal">
-                    <i class="fas fa-plus"></i> Thêm lớp mới
+                    <i class="fas fa-plus"></i> Thêm giáo viên mới
                 </button>
                 <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#confirmDeleteModal">
-                    <i class="fas fa-trash-alt"></i> Xóa lớp
+                    <i class="fas fa-trash-alt"></i> Xóa giáo viên
                 </button>
             </div>
         </div>
-        <table class="table table-striped table-hover table-bordered">
+        <table class="table table-striped table-hover">
             <thead>
                 <tr class="text-center">
-                    <th><input type="checkbox" id="selectAll"/></th>
-                    <th style="width: 50px;">#</th>
-                    <th>Tên Lớp</th>
-                    <th>Khối</th>
-                    <th>Sĩ Số</th>
+                    <th><input type="checkbox" id="selectAll" /></th>
+                    <th>Họ và Tên</th>
+                    <th>Môn Dạy</th>
+                    <th>Số Điện Thoại</th>
+                    <th>Năm Sinh</th>
+                    <th>Email</th>
+                    <th>Địa Chỉ</th>
                     <th>Thao Tác</th>
                 </tr>
             </thead>
@@ -77,12 +79,12 @@
             <div class="d-flex align-items-center mt-3 mb-2 flex-wrap">
                 <select id="pageSizeSelector" class="form-control form-control-sm"
                     style="width: auto; margin-right: 10px;">
-                    <option value="5">5 lớp/ trang</option>
-                    <option value="10">10 lớp/ trang</option>
-                    <option value="20">20 lớp/ trang</option>
-                    <option value="50">50 lớp/ trang</option>
+                    <option value="5">5 GV/ trang</option>
+                    <option value="10">10 GV/ trang</option>
+                    <option value="20">20 GV/ trang</option>
+                    <option value="50">50 GV/ trang</option>
                 </select>
-                <div class="hint-text mr-3" id="hintText">Hiển thị 0 trên tổng số 0 lớp học</div>
+                <div class="hint-text mr-3" id="hintText">Showing 0 of 0 entries</div>
             </div>
 
             <!-- Hàng dưới: pagination -->
