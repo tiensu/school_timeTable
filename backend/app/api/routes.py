@@ -48,13 +48,25 @@ def get_db():
         db.close()
 
 # ========== CLASSES ==========
-@router.post("/classes", response_model=schemas.ClassRead)
-def create_class(item: schemas.ClassCreate, db: Session = Depends(get_db)):
-    db_item = Class(**item.dict())
-    db.add(db_item)
+# @router.post("/classes", response_model=schemas.ClassRead)
+# def create_class(item: schemas.ClassCreate, db: Session = Depends(get_db)):
+#     db_item = Class(**item.dict())
+#     db.add(db_item)
+#     db.commit()
+#     db.refresh(db_item)
+#     return db_item
+
+@router.post("/classes")
+def create_class(cls: schemas.ClassCreate, db: Session = Depends(get_db)):
+    existing = db.query(Class).filter(Class.name == cls.name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Tên lớp đã tồn tại.")
+    new_class = Class(**cls.dict())
+    db.add(new_class)
     db.commit()
-    db.refresh(db_item)
-    return db_item
+    db.refresh(new_class)
+    return {"message": "Thêm lớp thành công."}
+
 
 @router.post("/classes/import")
 async def import_classes(file: UploadFile = File(...), db: Session = Depends(get_db)):
