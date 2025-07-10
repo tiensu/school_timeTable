@@ -20,8 +20,11 @@ class Teacher(Base):
     __tablename__ = "teachers"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
+    subject = Column(String)
+    phone = Column(String)
     email = Column(String, nullable=True)
-    max_weekly_sessions = Column(Integer)
+    dob = Column(String, nullable=True)
+    address = Column(String, nullable=True)
 
 class Subject(Base):
     __tablename__ = "subjects"
@@ -41,3 +44,7 @@ class Assignment(Base):
     class_id = Column(Integer, ForeignKey("classes.id"))
     teacher_id = Column(Integer, ForeignKey("teachers.id"))
     subject_id = Column(Integer, ForeignKey("subjects.id"))
+
+# ====== Tạo bảng sau khi model đã được định nghĩa ======
+Base.metadata.drop_all(bind=engine)
+Base.metadata.create_all(bind=engine)

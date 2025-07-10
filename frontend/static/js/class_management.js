@@ -20,7 +20,7 @@ async function fetchClasses(page = 1) {
         const result = await res.json();
 
         const data = result.data;
-        console.log("Fetched classes:", result);
+        // console.log("Fetched classes:", result);
         const total = result.total;
         // const total = 100; // Giả sử tổng số lớp là 100, bạn có thể thay bằng giá trị thực từ backend
         const totalPages = Math.ceil(total / pageSize);
@@ -74,13 +74,14 @@ async function fetchClasses(page = 1) {
 
 function enableEdit(el, classId) {
     const row = el.closest("tr");
-    row.querySelectorAll("td:not(:first-child):not(:last-child)").forEach(td => {
-        const value = td.textContent;
-        td.innerHTML = `<input type="text" class="form-control form-control-sm" value="${value}">`;
+    const editableIndexes = [2, 3, 4]; // Chỉ edit Name, Grade, Student Count
+    row.querySelectorAll("td").forEach((td, index) => {
+        if (editableIndexes.includes(index)) {
+            const value = td.textContent.trim();
+            td.innerHTML = `<input type="text" class="form-control form-control-sm" value="${value}">`;
+        }
     });
 
-    // row.querySelector(".edit").classList.add("d-none");
-    // row.querySelector(".save").classList.remove("d-none");
     row.querySelector(".edit").style.display = "none";
     row.querySelector(".save").style.display = "inline-block";
     row.querySelector(".delete").style.display = "none";
@@ -97,7 +98,7 @@ async function saveEdit(el, classId) {
         grade: grade,
         student_count: student_count
     };
-    // console.log("Updated values:", updatedValues);
+    console.log("Updated values:", updatedValues);
     if (!validateClassData(name, grade, student_count)) return;
 
     const res = await fetch(`http://localhost:8000/classes/${classId}`, {
@@ -115,65 +116,15 @@ async function saveEdit(el, classId) {
     // Set lại từng cell bằng đúng giá trị bạn vừa dùng
     // Quay lại hiển thị bình thường
     row.querySelectorAll("td:not(:first-child):not(:last-child)").forEach((td, idx) => {
-        if (idx === 0) td.innerHTML = updatedValues.name;
-        if (idx === 1) td.innerHTML = updatedValues.grade;
-        if (idx === 2) td.innerHTML = updatedValues.student_count;
+        if (idx === 1) td.innerHTML = updatedValues.name;
+        if (idx === 2) td.innerHTML = updatedValues.grade;
+        if (idx === 3) td.innerHTML = updatedValues.student_count;
     });
 
     row.querySelector(".edit").style.display = "inline-block";
     row.querySelector(".save").style.display = "none";
     row.querySelector(".delete").style.display = "inline-block";
 }
-
-
-// function renderPagination(totalPages, currentPage) {
-//     const container = document.getElementById("pagination");
-//     container.innerHTML = "";
-
-//     function createPageButton(text, page, isActive = false, isDisabled = false) {
-//         const btn = document.createElement("button");
-//         btn.className = `btn btn-sm ${isActive ? "btn-primary" : "btn-outline-primary"}`;
-//         btn.textContent = text;
-//         btn.disabled = isDisabled;
-//         btn.onclick = () => fetchClasses(page);
-//         return btn;
-//     }
-//     container.appendChild(createPageButton("Previous", currentPage - 1, false, currentPage === 1));
-
-//     if (totalPages <= 10) {
-//         for (let i = 1; i <= totalPages; i++) {
-//             container.appendChild(createPageButton(i, i, i === currentPage));
-//         }
-//     } else {
-//         container.appendChild(createPageButton(1, 1, 1 === currentPage));
-
-//         if (currentPage > 4) {
-//             container.appendChild(createEllipsis());
-//         }
-
-//         const start = Math.max(2, currentPage - 2);
-//         const end = Math.min(totalPages - 1, currentPage + 2);
-
-//         for (let i = start; i <= end; i++) {
-//             container.appendChild(createPageButton(i, i, i === currentPage));
-//         }
-
-//         if (currentPage < totalPages - 3) {
-//             container.appendChild(createEllipsis());
-//         }
-
-//         container.appendChild(createPageButton(totalPages, totalPages, totalPages === currentPage));
-//     }
-
-//     container.appendChild(createPageButton("Next", currentPage + 1, false, currentPage === totalPages));
-
-//     function createEllipsis() {
-//         const span = document.createElement("span");
-//         span.className = "mx-1";
-//         span.textContent = "...";
-//         return span;
-//     }
-// }
 
 function renderPagination(totalPages, currentPage) {
     const container = document.getElementById("pagination");
@@ -268,7 +219,8 @@ async function addClass() {
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.detail || "Lỗi khi thêm lớp.");
+            showToast(error.detail || "Lỗi khi thêm lớp.", "danger");
+            return;
         }
 
         // Đóng modal (nếu dùng Bootstrap 3)
@@ -406,7 +358,6 @@ function showToast(message, type = "success") {
     toast.remove();
   }, 3000);
 }
-
 
 async function deleteSelectedClasses() {
     const selectedIds = Array.from(document.querySelectorAll('.row-checkbox:checked'))

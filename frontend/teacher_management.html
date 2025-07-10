@@ -100,22 +100,34 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <form id="teacherForm" onsubmit="event.preventDefault(); addTeacher();">
-                        <div class="modal-header">
+                        <div class="modal-header bg-dark text-white">
                             <h4 class="modal-title">Thêm giáo viên mới</h4>
                             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                         </div>
                         <div class="modal-body">
                             <div class="form-group">
-                                <label>Tên giáo viên</label>
+                                <label>Họ Và Tên</label>
                                 <input type="text" id="teacherName" class="form-control" required />
                             </div>
                             <div class="form-group">
                                 <label>Môn Dạy</label>
-                                <input type="number" id="teacherGrade" class="form-control" required />
+                                <input type="text" id="teacherSubject" class="form-control" required />
                             </div>
                             <div class="form-group">
-                                <label>Sĩ số</label>
-                                <input type="number" id="teacherSize" class="form-control" required />
+                                <label>Số Điện Thoại</label>
+                                <input type="number" id="teacherPhone" class="form-control" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="teacherEmail" class="form-control" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Năm Sinh</label>
+                                <input type="date" id="teacherDoB" class="form-control" />
+                            </div>
+                            <div class="form-group">
+                                <label>Địa Chỉ</label>
+                                <input type="text" id="teacherAddress" class="form-control" />
                             </div>
                         </div>
                         <div class="modal-footer">

@@ -34,16 +34,19 @@ async function fetchTeachers(page = 1) {
                 <td><input type="checkbox" teacher="row-checkbox" value="${cls.id}"></td>
                 <td>${cls.index}</td>
                 <td>${cls.name}</td>
-                <td>${cls.grade}</td>
-                <td>${cls.student_count}</td>
+                <td>${cls.subject}</td>
+                <td>${cls.phone}</td>
+                <td>${cls.email}</td>
+                <td>${cls.dob}</td>
+                <td>${cls.address}</td>
                 <td>
-                <a href="javascript:void(0)" teacher="edit" onclick="enableEdit(this, ${cls.id})">
-                    <i teacher="material-icons" data-toggle="tooltip" title="Sửa">&#xE254;</i>
+                <a href="javascript:void(0)" class="edit" onclick="enableEdit(this, ${cls.id})">
+                    <i class="material-icons" data-toggle="tooltip" title="Sửa">&#xE254;</i>
                 </a>
-                <a href="javascript:void(0)" teacher="save" style="display: none;" onclick="saveEdit(this, ${cls.id})">
-                    <i teacher="material-icons" data-toggle="tooltip" title="Lưu">&#xE161;</i>
+                <a href="javascript:void(0)" class="save" style="display: none;" onclick="saveEdit(this, ${cls.id})">
+                    <i class="material-icons" data-toggle="tooltip" title="Lưu">&#xE161;</i>
                 </a>
-                <a href="#" teacher="delete" onclick="showDeleteModal(${cls.id}, '${cls.name}')"><i teacher="material-icons" title="Delete">&#xE872;</i>
+                <a href="#" class="delete" onclick="showDeleteModal(${cls.id}, '${cls.name}')"><i class="material-icons" title="Delete">&#xE872;</i>
                 </a>
                 </td>
 
@@ -61,13 +64,13 @@ async function fetchTeachers(page = 1) {
         const endEntry = Math.min(skip + data.length, total);
         const hintText = document.getElementById("hintText");
         if (total === 0) {
-            hintText.textContent = `Hiển thị 0 trên tổng số 0 lớp học`;
+            hintText.textContent = `Hiển thị 0 trên tổng số 0 giáo viên`;
         } else {
             hintText.textContent = `Hiển thị từ ${startEntry} đến ${endEntry} trên tổng số ${total} lớp học`;
         }
 
     } catch (err) {
-        showToast("Lỗi khi tải danh sách lớp học", "danger");
+        showToast("Lỗi khi tải danh sách giáo viên", "danger");
         console.error(err);
     }
 }
@@ -133,12 +136,12 @@ function renderPagination(totalPages, currentPage) {
     // Tạo 1 nút trang (li > a)
     function createPageButton(text, page, isActive = false, isDisabled = false) {
         const li = document.createElement("li");
-        li.teacherName = "page-item";
-        if (isActive) li.teacherList.add("active");
-        if (isDisabled) li.teacherList.add("disabled");
+        li.className = "page-item";
+        if (isActive) li.classList.add("active");
+        if (isDisabled) li.classList.add("disabled");
 
         const a = document.createElement("a");
-        a.teacherName = "page-link";
+        a.className = "page-link";
         a.href = "#";
         a.textContent = text;
         a.onclick = function (e) {
@@ -198,10 +201,13 @@ function renderPagination(totalPages, currentPage) {
 
 async function addTeacher() {
     const name = document.getElementById("teacherName").value.trim();
-    const grade = parseInt(document.getElementById("subject").value);
-    const size = parseInt(document.getElementById("phone").value);
+    const subject = document.getElementById("teacherSubject").value.trim();
+    const phone = document.getElementById("teacherPhone").value.trim();
+    const email = document.getElementById("teacherEmail").value.trim();
+    const dob = document.getElementById("teacherDoB").value.trim();
+    const address = document.getElementById("teacherAddress").value.trim();
 
-    if (!validateTeacherData(name, grade, size)) return;
+    if (!validateTeacherData(name, subject, phone, email, dob, address)) return;
 
     try {
         const response = await fetch("http://localhost:8000/teachers", {
@@ -211,8 +217,11 @@ async function addTeacher() {
             },
             body: JSON.stringify({
                 name: name,
-                grade: grade,
-                student_count: size
+                subject: subject,
+                phone: phone,
+                email: email,
+                dob: dob,
+                address: address
             })
         });
 
@@ -262,11 +271,11 @@ async function uploadExcel() {
         showToast(result.message || "Import thành công", "success");
         if (result.duplicated.length > 0) {
             const existed_teachers = result.duplicated.join(", ");
-            const mes_dup = `Bỏ qua ${result.duplicated.length} lớp đã tồn tại: ${existed_teachers}`;
+            const mes_dup = `Bỏ qua ${result.duplicated.length} giáo viên đã tồn tại: ${existed_teachers}`;
             showToast(mes_dup, "warning");
         }
         
-        fetchTeachers(); // Load lại danh sách lớp
+        fetchTeachers(); // Load lại danh sách giáo viên
         fileInput.value = ""; // Reset <input type="file">
         document.getElementById("fileName").value = "";  // Xóa tên file hiển thị
     } catch (error) {
@@ -280,19 +289,45 @@ function goToPage(page) {
     fetchTeachers();
 }
 
-function validateTeacherData(name, grade, student_count) {
+function validateTeacherData(name, subject, phone, email, dob, address) {
+    // Kiểm tra tên
     if (!name || name.trim() === "") {
-        showToast("Tên lớp không được để trống", "danger");
+        showToast("Tên giáo viên không được để trống", "danger");
         return false;
     }
-    if (isNaN(grade) || grade < 1 || grade > 12) {
-        showToast("Khối lớp phải là số từ 1 đến 12", "danger");
+
+    // Kiểm tra môn dạy
+    if (!subject || subject.trim() === "") {
+        showToast("Môn dạy không được để trống", "danger");
         return false;
     }
-    if (isNaN(student_count) || student_count < 1 || student_count > 100) {
-        showToast("Sĩ số lớp phải là số từ 1 đến 100", "danger");
+
+    // Kiểm tra số điện thoại (10 chữ số, chỉ chứa số)
+    const phoneRegex  = /^[0-9]{10}$/;
+    if (!phone || !phoneRegex .test(phone)) {
+        showToast("Số điện thoại không hợp lệ (phải gồm 10 chữ số)", "danger");
         return false;
     }
+
+    // Kiểm tra email (định dạng cơ bản)
+    const emailRegex  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex .test(email)) {
+        showToast("Email không hợp lệ", "danger");
+        return false;
+    }
+
+    // Kiểm tra ngày sinh
+    if (!dob || isNaN(Date.parse(dob))) {
+        showToast("Ngày sinh không hợp lệ", "danger");
+        return false;
+    }
+
+    // Kiểm tra địa chỉ
+    if (!address || address.trim() === "") {
+        showToast("Địa chỉ không được để trống", "danger");
+        return false;
+    }
+
     return true;
 }
 

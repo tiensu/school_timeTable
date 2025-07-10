@@ -48,14 +48,6 @@ def get_db():
         db.close()
 
 # ========== CLASSES ==========
-# @router.post("/classes", response_model=schemas.ClassRead)
-# def create_class(item: schemas.ClassCreate, db: Session = Depends(get_db)):
-#     db_item = Class(**item.dict())
-#     db.add(db_item)
-#     db.commit()
-#     db.refresh(db_item)
-#     return db_item
-
 @router.post("/classes")
 def create_class(cls: schemas.ClassCreate, db: Session = Depends(get_db)):
     existing = db.query(Class).filter(Class.name == cls.name).first()
@@ -77,20 +69,23 @@ async def import_classes(file: UploadFile = File(...), db: Session = Depends(get
     duplicated = []
 
     for _, row in df.iterrows():
-        name = str(row['name']).strip()
-        grade = int(row['grade'])
-        student_count = int(row['student_count'])
+        try:
+            name = str(row[0]).strip()           # Cột A
+            grade = int(row[1])                  # Cột B
+            student_count = int(row[2])          # Cột C
 
-        # Kiểm tra lớp đã tồn tại
-        existing = db.query(Class).filter(Class.name == name).first()
-        if existing:
-            duplicated.append(name)
-            continue
+            # Kiểm tra lớp đã tồn tại
+            existing = db.query(Class).filter(Class.name == name).first()
+            if existing:
+                duplicated.append(name)
+                continue
 
-        # Thêm lớp mới
-        class_obj = Class(name=name, grade=grade, student_count=student_count)
-        db.add(class_obj)
-        imported_count += 1
+            # Thêm lớp mới
+            class_obj = Class(name=name, grade=grade, student_count=student_count)
+            db.add(class_obj)
+            imported_count += 1
+        except Exception as e:
+            duplicated.append(f"{row[0]} (Lỗi: {str(e)})")
 
     db.commit()
 
@@ -102,6 +97,7 @@ async def import_classes(file: UploadFile = File(...), db: Session = Depends(get
 
 @router.get("/classes")
 def get_classes(skip: int = 0, limit: int = 10, search: str = ""):
+    logger.info(f'Fetch class ...')
     session = SessionLocal()
     query = session.query(Class)
     if search:
@@ -109,10 +105,6 @@ def get_classes(skip: int = 0, limit: int = 10, search: str = ""):
     total = query.count()
     classes = query.offset(skip).limit(limit).all()
     session.close()
-    # return {
-    #     "data": [schemas.ClassRead.from_orm(cls) for cls in classes],
-    #     "total": total
-    # }
     return {
         "data": [
             {
@@ -169,17 +161,76 @@ def delete_multiple_classes(req: ClassDeleteRequest, db: Session = Depends(get_d
     return {"deleted": deleted_count, "message": f"Đã xóa {deleted_count} lớp thành công!"}
 
 # ========== TEACHERS ==========
-@router.post("/teachers", response_model=schemas.TeacherRead)
+@router.post("/teachers")
 def create_teacher(item: schemas.TeacherCreate, db: Session = Depends(get_db)):
-    db_item = Teacher(**item.dict())
-    db.add(db_item)
+    logger.info(f'Thêm mới giáo viên: {item}')
+    existing = db.query(Teacher).filter(Teacher.name == item.name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Giáo viên đã tồn tại.")
+    new_teacher = Teacher(**item.dict())
+    db.add(new_teacher)
     db.commit()
-    db.refresh(db_item)
-    return db_item
+    db.refresh(new_teacher)
+    return {"message": "Thêm giáo viên thành công."}
 
-@router.get("/teachers", response_model=list[schemas.TeacherRead])
-def list_teachers(db: Session = Depends(get_db)):
-    return db.query(Teacher).all()
+@router.post("/teachers/import")
+async def import_classes(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    contents = await file.read()
+    df = pd.read_excel(io.BytesIO(contents))
+    
+    imported_count = 0
+    duplicated = []
+
+    for _, row in df.iterrows():
+        try:
+            name = str(row[0]).strip()           # Cột A
+            subject = str(row[1]).strip()                    # Cột B
+            phone = str(row[2]).strip()            # Cột C
+            email = str(row[3]).strip()    
+            dob = str(row[4]).strip()    
+            address = str(row[5]).strip()    
+
+            # Kiểm tra gv đã tồn tại
+            existing = db.query(Teacher).filter(Teacher.name == name).first()
+            if existing:
+                duplicated.append(name)
+                continue
+
+            # Thêm lớp mới
+            teacher_obj = Teacher(name=name, subject=subject, phone=phone, email=email, dob=dob, address=address)
+            db.add(teacher_obj)
+            imported_count += 1
+        except Exception as e:
+            duplicated.append(f"{row[0]} (Lỗi: {str(e)})")
+
+    db.commit()
+
+    return {
+        "message": f"Đã import thành công {imported_count} lớp học",
+        "imported_count": imported_count,
+        "duplicated": duplicated
+    }
+
+@router.get("/teachers")
+def get_teachers(skip: int = 0, limit: int = 10, search: str = ""):
+    session = SessionLocal()
+    query = session.query(Teacher)
+    if search:
+        query = query.filter(Teacher.name.ilike(f"%{search}%"))
+    total = query.count()
+    teachers = query.offset(skip).limit(limit).all()
+    session.close()
+    logger.info(f'teachers: {teachers}')
+    return {
+        "data": [
+            {
+                **schemas.TeacherRead.from_orm(cls).dict(),
+                "index": skip + i + 1  # STT thực tế
+            }
+            for i, cls in enumerate(teachers)
+        ],
+        "total": total
+    }
 
 # ========== SUBJECTS ==========
 @router.post("/subjects", response_model=schemas.SubjectRead)

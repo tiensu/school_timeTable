@@ -19,16 +19,20 @@ class ClassRead(ClassBase):
 # ===== TEACHERS =====
 class TeacherBase(BaseModel):
     name: str
-    email: Optional[str] = None
-    max_weekly_sessions: int
+    subject: str
+    phone: str
+    email: str
+    dob: str
+    address: str
 
 class TeacherCreate(TeacherBase):
     pass
 
 class TeacherRead(TeacherBase):
     id: int
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 # ===== SUBJECTS =====
 class SubjectBase(BaseModel):
