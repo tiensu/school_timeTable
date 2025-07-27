@@ -20,7 +20,7 @@ async function fetchTeachers(page = 1) {
         const result = await res.json();
 
         const data = result.data;
-        console.log("Fetched teachers:", result);
+        console.log("Fetched teachers:", data);
         const total = result.total;
         // const total = 100; // Giả sử tổng số lớp là 100, bạn có thể thay bằng giá trị thực từ backend
         const totalPages = Math.ceil(total / pageSize);
@@ -30,8 +30,8 @@ async function fetchTeachers(page = 1) {
         table.innerHTML = "";
         data.forEach(cls => {
             table.innerHTML += `
-            <tr teacher="text-center">
-                <td><input type="checkbox" teacher="row-checkbox" value="${cls.id}"></td>
+            <tr class="text-center">
+                <td><input type="checkbox" class="row-checkbox" value="${cls.id}"></td>
                 <td>${cls.index}</td>
                 <td>${cls.name}</td>
                 <td>${cls.subject}</td>
@@ -39,6 +39,11 @@ async function fetchTeachers(page = 1) {
                 <td>${cls.email}</td>
                 <td>${cls.dob}</td>
                 <td>${cls.address}</td>
+                <td>${cls.max_weekly_lessons}</td>
+                <td>${cls.available_morning ? "Có" : "Không"}</td>
+                <td>${cls.available_afternoon ? "Có" : "Không"}</td>
+                <td>${cls.unavailable_days}</td>
+                <td>${cls.status}</td>
                 <td>
                 <a href="javascript:void(0)" class="edit" onclick="enableEdit(this, ${cls.id})">
                     <i class="material-icons" data-toggle="tooltip" title="Sửa">&#xE254;</i>
@@ -56,7 +61,7 @@ async function fetchTeachers(page = 1) {
 
         // render phân trang
         renderPagination(totalPages, currentPage);
-        
+
         document.getElementById("selectAll").checked = false;
 
         // ✅ Cập nhật hint text
@@ -66,7 +71,7 @@ async function fetchTeachers(page = 1) {
         if (total === 0) {
             hintText.textContent = `Hiển thị 0 trên tổng số 0 giáo viên`;
         } else {
-            hintText.textContent = `Hiển thị từ ${startEntry} đến ${endEntry} trên tổng số ${total} lớp học`;
+            hintText.textContent = `Hiển thị từ ${startEntry} đến ${endEntry} trên tổng số ${total} giáo viên.`;
         }
 
     } catch (err) {
@@ -77,13 +82,66 @@ async function fetchTeachers(page = 1) {
 
 function enableEdit(el, teacherId) {
     const row = el.closest("tr");
-    row.querySelectorAll("td:not(:first-child):not(:last-child)").forEach(td => {
-        const value = td.textContent;
-        td.innerHTML = `<input type="text" teacher="form-control form-control-sm" value="${value}">`;
+    const editableIndexes = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // Các cột có thể chỉnh sửa
+    row.querySelectorAll("td").forEach((td, index) => {
+        if (index === 6) {
+            // Chỉ cho phép chỉnh sửa ngày sinh
+            // console.log("DoB: ", td.textContent.trim())
+            const rawText = td.textContent.trim(); // "23/4/2000"
+            const [d, m, y] = rawText.split('/');
+            const formatted = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            console.log("formatted DoB: ", formatted);
+            td.innerHTML = `<input type="date" class="form-control form-control-sm" value="${formatted}">`;
+        } else if (index === 9 || index === 10) {
+            // Chỉ cho phép chỉnh sửa các cột có thể chọn Có/Không
+            const currentValue = td.textContent.trim();
+            td.innerHTML = `<select class="form-control form-control-sm">
+                <option value="true" ${currentValue === "Có" ? "selected" : ""}>Có</option>
+                <option value="false" ${currentValue === "Không" ? "selected" : ""}>Không</option>
+            </select>`;
+        } else if (index === 11) {
+            // Chỉ cho phép chỉnh sửa ngày không dạy được
+            const currentValue = td.textContent.trim();
+            const selectedNames = currentValue
+                .split(",")
+                .map(name => name.trim());
+            console.log("selectedNames:", selectedNames);
+
+            // Tạo một select với nhiều lựa chọn
+            td.innerHTML = `
+                <select id="people" name="people" multiple>
+                    <option value="Thứ 2">Thứ 2</option>
+                    <option value="Thứ 3">Thứ 3</option>
+                    <option value="Thứ 4">Thứ 4</option>
+                    <option value="Thứ 5">Thứ 5</option>
+                    <option value="Thứ 6">Thứ 6</option>
+                    <option value="Thứ 7">Thứ 7</option>
+                </select>`;
+            // Gán selected cho từng option trước khi khởi tạo plugin
+            const selectEl = td.querySelector('#people');
+            for (const option of selectEl.options) {
+                if (selectedNames.includes(option.value)) {
+                    option.selected = true; // hoặc option.setAttribute("selected", "selected");
+                }
+            }
+            // Khởi tạo plugin multiSelect
+            $(function () {
+                $('#people').multiSelect();
+            });
+
+
+        } else if (index === 12) {
+            // Chỉ cho phép chỉnh sửa trạng thái
+            td.innerHTML = `<select class="form-control form-control-sm">
+                <option value="active" ${td.textContent.trim() === "Đang dạy" ? "selected" : ""}>Đang dạy</option>
+                <option value="inactive" ${td.textContent.trim() === "Tạm dừng" ? "selected" : ""}>Tạm dừng</option>
+            </select>`;
+        } else if (editableIndexes.includes(index)) {
+            const value = td.textContent.trim();
+            td.innerHTML = `<input type="text" class="form-control form-control-sm" value="${value}">`;
+        }
     });
 
-    // row.querySelector(".edit").teacherList.add("d-none");
-    // row.querySelector(".save").teacherList.remove("d-none");
     row.querySelector(".edit").style.display = "none";
     row.querySelector(".save").style.display = "inline-block";
     row.querySelector(".delete").style.display = "none";
@@ -93,15 +151,34 @@ async function saveEdit(el, teacherId) {
     const row = el.closest("tr");
     const inputs = row.querySelectorAll("td input");
     const name = inputs[1].value;
-    const grade = parseInt(inputs[2].value);
-    const student_count = parseInt(inputs[3].value);
+    const subject = inputs[2].value;
+    const phone = inputs[3].value;
+    const email = inputs[4].value;
+    const dob = inputs[5].value;
+    // Chuyển đổi định dạng ngày sinh từ "dd/mm/yyyy" sang "yyyy-mm-dd"
+    const [y, m, d] = dob.split('-');
+    dob_formated = `${d}/${m}/${y}`; // → "23/04/2000"
+    const address = inputs[6].value;
+    const maxWeeklyLessons = inputs[7].value;
+    const availableMorning = inputs[8].value === "Có";
+    const availableAfternoon = inputs[9].value === "Có";
+    const unavailableDays = inputs[10].value.split(",").map(d => d.trim()); // Chuyển đổi chuỗi thành mảng
+    const status = inputs[11].value;
     const updatedValues = {
         name: name,
-        grade: grade,
-        student_count: student_count
+        subject: subject,
+        phone: phone,
+        email: email,
+        dob: dob_formated,
+        address: address,
+        status: status,
+        max_weekly_lessons: parseInt(maxWeeklyLessons) || 18, // Mặc định là 18 nếu không nhập
+        available_morning: availableMorning, // Chuyển đổi từ "Có" hoặc "Không" thành boolean
+        available_afternoon: availableAfternoon, // Chuyển đổi từ "Có" hoặc "Không" thành boolean
+        unavailable_days: unavailableDays   // Mảng ngày không dạy được
     };
     // console.log("Updated values:", updatedValues);
-    if (!validateTeacherData(name, grade, student_count)) return;
+    if (!validateTeacherData(name, subject, phone, email, dob_formated, address)) return;
 
     const res = await fetch(`http://localhost:8000/teachers/${teacherId}`, {
         method: "PUT",
@@ -118,9 +195,17 @@ async function saveEdit(el, teacherId) {
     // Set lại từng cell bằng đúng giá trị bạn vừa dùng
     // Quay lại hiển thị bình thường
     row.querySelectorAll("td:not(:first-child):not(:last-child)").forEach((td, idx) => {
-        if (idx === 0) td.innerHTML = updatedValues.name;
-        if (idx === 1) td.innerHTML = updatedValues.grade;
-        if (idx === 2) td.innerHTML = updatedValues.student_count;
+        if (idx === 1) td.innerHTML = updatedValues.name;
+        if (idx === 2) td.innerHTML = updatedValues.subject;
+        if (idx === 3) td.innerHTML = updatedValues.phone;
+        if (idx === 4) td.innerHTML = updatedValues.email;
+        if (idx === 5) td.innerHTML = updatedValues.dob;
+        if (idx === 6) td.innerHTML = updatedValues.address;
+        if (idx === 7) td.innerHTML = updatedValues.max_weekly_lessons;
+        if (idx === 8) td.innerHTML = updatedValues.available_morning == "true" ? "Có" : "Không";
+        if (idx === 9) td.innerHTML = updatedValues.available_afternoon == "true" ? "Có" : "Không";
+        if (idx === 10) td.innerHTML = updatedValues.unavailable_days.join(", "); // Hiển thị mảng ngày không dạy được
+        if (idx === 11) td.innerHTML = updatedValues.status;
     });
 
     row.querySelector(".edit").style.display = "inline-block";
@@ -274,7 +359,7 @@ async function uploadExcel() {
             const mes_dup = `Bỏ qua ${result.duplicated.length} giáo viên đã tồn tại: ${existed_teachers}`;
             showToast(mes_dup, "warning");
         }
-        
+
         fetchTeachers(); // Load lại danh sách giáo viên
         fileInput.value = ""; // Reset <input type="file">
         document.getElementById("fileName").value = "";  // Xóa tên file hiển thị
@@ -303,20 +388,21 @@ function validateTeacherData(name, subject, phone, email, dob, address) {
     }
 
     // Kiểm tra số điện thoại (10 chữ số, chỉ chứa số)
-    const phoneRegex  = /^[0-9]{10}$/;
-    if (!phone || !phoneRegex .test(phone)) {
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phone || !phoneRegex.test(phone)) {
         showToast("Số điện thoại không hợp lệ (phải gồm 10 chữ số)", "danger");
         return false;
     }
 
     // Kiểm tra email (định dạng cơ bản)
-    const emailRegex  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex .test(email)) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
         showToast("Email không hợp lệ", "danger");
         return false;
     }
 
     // Kiểm tra ngày sinh
+    console.log("dob: ", dob)
     if (!dob || isNaN(Date.parse(dob))) {
         showToast("Ngày sinh không hợp lệ", "danger");
         return false;
@@ -354,20 +440,20 @@ async function deleteTeacherById(teacherId) {
 function showDeleteModal(teacherId, teacherName) {
     document.getElementById("deleteTeacherId").value = teacherId;
     document.getElementById("deleteMessage").textContent =
-        `Bạn có chắc chắn muốn xóa lớp "${teacherName}" không?`;
+        `Bạn có chắc chắn muốn xóa giáo viên "${teacherName}" không?`;
     $("#deleteSingleModal").modal("show");
 }
 
 function showToast(message, type = "success") {
-  const toast = document.createElement("div");
-  toast.teacherName = `toast-message bg-${type}`;
+    const toast = document.createElement("div");
+    toast.teacherName = `toast-message bg-${type}`;
 
-  // Màu nền theo loại thông báo
-  let bgColor = "#28a745"; // success
-  if (type === "danger") bgColor = "#dc3545";
-  else if (type === "warning") bgColor = "#ffc107";
+    // Màu nền theo loại thông báo
+    let bgColor = "#28a745"; // success
+    if (type === "danger") bgColor = "#dc3545";
+    else if (type === "warning") bgColor = "#ffc107";
 
-  toast.innerHTML = `
+    toast.innerHTML = `
     <div style="
       min-width: 200px;
       margin-top: 10px;
@@ -383,13 +469,13 @@ function showToast(message, type = "success") {
     </div>
   `;
 
-  const container = document.getElementById("toastContainer");
-  container.appendChild(toast);
+    const container = document.getElementById("toastContainer");
+    container.appendChild(toast);
 
-  // Tự xoá sau 3 giây
-  setTimeout(() => {
-    toast.remove();
-  }, 3000);
+    // Tự xoá sau 3 giây
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
 }
 
 
@@ -399,7 +485,7 @@ async function deleteSelectedTeachers() {
 
     if (selectedIds.length === 0) {
         // alert("Vui lòng chọn ít nhất 1 lớp để xóa.");
-        showToast("Vui lòng chọn ít nhất 1 lớp để xóa.", "danger")
+        showToast("Vui lòng chọn ít nhất 1 giáo viên để xóa.", "danger")
         return;
     }
     console.log("selectedIds:", selectedIds)
@@ -413,7 +499,7 @@ async function deleteSelectedTeachers() {
         const result = await res.json();
         // Đóng modal
         $('#confirmDeleteModal').modal('hide');
-        showToast("Xóa lớp thành công", "success");  // màu xanh
+        showToast("Xóa giáo viên thành công", "success");  // màu xanh
 
         $("#selectAll").prop("checked", false);
 

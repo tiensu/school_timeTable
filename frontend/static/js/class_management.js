@@ -34,7 +34,7 @@ async function fetchClasses(page = 1) {
                 <td><input type="checkbox" class="row-checkbox" value="${cls.id}"></td>
                 <td>${cls.index}</td>
                 <td>${cls.name}</td>
-                <td>${cls.grade}</td>
+                <td>${cls.grade === 10 ? "Khối 10" : cls.grade === 11 ? "Khối 11" : "Khối 12"}</td>
                 <td>${cls.student_count}</td>
                 <td>
                 <a href="javascript:void(0)" class="edit" onclick="enableEdit(this, ${cls.id})">
@@ -76,7 +76,13 @@ function enableEdit(el, classId) {
     const row = el.closest("tr");
     const editableIndexes = [2, 3, 4]; // Chỉ edit Name, Grade, Student Count
     row.querySelectorAll("td").forEach((td, index) => {
-        if (editableIndexes.includes(index)) {
+        if (index === 3) {
+            td.innerHTML = `<select class="form-control form-control-sm">
+                <option value="10" ${td.textContent.trim() === "Khối 10" ? "selected" : ""}>Khối 10</option>
+                <option value="11" ${td.textContent.trim() === "Khối 11" ? "selected" : ""}>Khối 11</option>
+                <option value="12" ${td.textContent.trim() === "Khối 12" ? "selected" : ""}>Khối 12</option>
+            </select>`;
+        } else if (editableIndexes.includes(index)) {
             const value = td.textContent.trim();
             td.innerHTML = `<input type="text" class="form-control form-control-sm" value="${value}">`;
         }
@@ -90,9 +96,10 @@ function enableEdit(el, classId) {
 async function saveEdit(el, classId) {
     const row = el.closest("tr");
     const inputs = row.querySelectorAll("td input");
-    const name = inputs[1].value;
-    const grade = parseInt(inputs[2].value);
-    const student_count = parseInt(inputs[3].value);
+    const selects = row.querySelectorAll("td select");
+    const name = inputs[0].value.trim();
+    const grade = parseInt(selects[0].value);
+    const student_count = parseInt(inputs[2].value);
     const updatedValues = {
         name: name,
         grade: grade,
@@ -117,7 +124,7 @@ async function saveEdit(el, classId) {
     // Quay lại hiển thị bình thường
     row.querySelectorAll("td:not(:first-child):not(:last-child)").forEach((td, idx) => {
         if (idx === 1) td.innerHTML = updatedValues.name;
-        if (idx === 2) td.innerHTML = updatedValues.grade;
+        if (idx === 2) td.innerHTML = updatedValues.grade === 10 ? "Khối 10" : updatedValues.grade === 11 ? "Khối 11" : "Khối 12";
         if (idx === 3) td.innerHTML = updatedValues.student_count;
     });
 
@@ -379,13 +386,13 @@ async function deleteSelectedClasses() {
         const result = await res.json();
         // Đóng modal
         $('#confirmDeleteModal').modal('hide');
-        showToast("Xóa lớp thành công", "success");  // màu xanh
+        showToast("Xóa lớp thành công.", "success");  // màu xanh
 
         $("#selectAll").prop("checked", false);
 
         fetchClasses(currentPage);  // Refresh danh sách
     } catch (err) {
-        showToast("Xảy ra lỗi khi xóa", "danger");   // màu đỏ
+        showToast("Xảy ra lỗi khi xóa lớp học.", "danger");   // màu đỏ
     }
 }
 

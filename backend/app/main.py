@@ -1,10 +1,17 @@
 from fastapi import FastAPI
-from app.api.routes import router
 from fastapi.middleware.cors import CORSMiddleware
-from app.models.database import Base, engine 
+
+from app.api.classes_routers import router as class_routers
+from app.api.teachers_routers import router as teacher_routers
+from app.api.subject_routers import router as subjects_routers
+from app.models.model import Base, engine 
+# 👇 Import tất cả models để đảm bảo chúng được đăng ký vào Base
+from app.models import classes_model, teachers_model, subjects_model
 
 app = FastAPI()
-app.include_router(router)
+app.include_router(class_routers)
+app.include_router(teacher_routers)
+app.include_router(subjects_routers)
 
 app.add_middleware(
     CORSMiddleware,

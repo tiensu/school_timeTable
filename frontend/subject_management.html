@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Subjects</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="static/css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="static/js/subject_management.js"></script>
+
+</head>
+
+<body class="bg-light">
+    <div class="container">
+        <div class="bg-dark text-white py-3 px-4 d-flex flex-wrap align-items-center justify-content-between"
+            style="border-radius: 4px;">
+            <div class="d-flex align-items-center flex-wrap">
+                <h5 class="mb-0 mr-4 font-weight-bold"><i class="fas fa-chalkboard mr-2"></i>Quản lý <span
+                        class="text-info">Môn học</span></h5>
+            </div>
+
+            <div class="d-flex align-items-center flex-wrap">
+                <input type="text" id="searchInput" class="form-control form-control-sm mr-2"
+                    placeholder="Tìm kiếm theo tên môn học..." style="min-width: 200px;">
+            </div>
+
+            <div class="d-flex align-items-center flex-wrap mr-2">
+                <!-- Nhập tên file (click được) -->
+                <div class="input-group input-group-sm" style="width: 240px;">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fas fa-file-excel"></i></span>
+                    </div>
+                    <input type="text" class="form-control" id="fileName" placeholder="Chọn file excel..." readonly
+                        onclick="document.getElementById('excelFile').click();" style="cursor: pointer;">
+                </div>
+
+                <!-- Input file (ẩn) -->
+                <input type="file" id="excelFile" style="display: none;" onchange="handleFileSelected(this)">
+
+                <!-- Nút Import -->
+                <button class="btn btn-info btn-sm ml-2" onclick="uploadExcel();">
+                    <i class="fas fa-upload"></i> Import
+                </button>
+            </div>
+
+            <div class="d-flex align-items-center flex-wrap">
+                <button class="btn btn-success btn-sm mr-2" data-toggle="modal" data-target="#addSubjectModal">
+                    <i class="fas fa-plus"></i> Thêm môn học mới
+                </button>
+                <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#confirmDeleteModal">
+                    <i class="fas fa-trash-alt"></i> Xóa môn học
+                </button>
+            </div>
+        </div>
+        <table class="table table-striped table-hover table-bordered">
+            <thead>
+                <tr class="text-center">
+                    <th><input type="checkbox" id="selectAll"/></th>
+                    <th style="width: 50px;">#</th>
+                    <th>Tên Môn Học</th>
+                    <th>Mã Môn Học</th>
+                    <th>Số Tiết</th>
+                    <th>Nhóm Môn Học</th>
+                    <th>Yêu Cầu Bắt Buộc</th>
+                    <th>Thi Cuối Kỳ</th>
+                    <th>Mô Tả</th>
+                    <th>Trạng Thái</th>
+                    <th>Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody id="classTableBody">
+                <!-- Rows will be inserted by JavaScript -->
+            </tbody>
+        </table>
+
+        <div class="clearfix">
+            <!-- Hàng trên: hint text + selector -->
+            <div class="d-flex align-items-center mt-3 mb-2 flex-wrap">
+                <select id="pageSizeSelector" class="form-control form-control-sm"
+                    style="width: auto; margin-right: 10px;">
+                    <option value="5">5 môn học/ trang</option>
+                    <option value="10">10 môn học/ trang</option>
+                    <option value="20">20 môn học/ trang</option>
+                    <option value="50">50 môn học/ trang</option>
+                </select>
+                <div class="hint-text mr-3" id="hintText">Hiển thị 0 trên tổng số 0 môn học</div>
+            </div>
+
+            <!-- Hàng dưới: pagination -->
+            <div>
+                <ul class="pagination" id="pagination" style="margin-left: 0;"></ul>
+            </div>
+        </div>
+
+
+        <!-- Add Subject Modal -->
+        <div id="addSubjectModal" class="modal fade">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="subjectForm" onsubmit="event.preventDefault(); addSubject();">
+                        <div class="modal-header bg-dark text-white">
+                            <h4 class="modal-title">Thêm môn học mới</h4>
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>Tên Môn Học</label>
+                                <input type="text" id="subjectName" class="form-control" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Mã Môn Học</label>
+                                <input type="text" id="subjectCode" class="form-control" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Số Tiết 1 Tuần</label>
+                                <input type="number" id="subjectPeriods" class="form-control" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Nhóm Môn Học</label>
+                                <input type="text" id="subjectGroup" class="form-control" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Yêu Cầu Bắt Buộc</label>
+                                <select id="subjectRequired" class="form-control" required>
+                                    <option value="true">Có</option>
+                                    <option value="false">Không</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Thi Cuối Kỳ</label>
+                                <select id="subjectExam" class="form-control" required>
+                                    <option value="true">Có</option>
+                                    <option value="false">Không</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Mô Tả</label>
+                                <textarea id="subjectDescription" class="form-control" rows="3"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Trạng Thái</label>
+                                <select id="subjectStatus" class="form-control" required>
+                                    <option value="active">Hoạt động</option>
+                                    <option value="inactive">Tạm dừng</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <input type="button" class="btn btn-default" data-dismiss="modal" value="Hủy" />
+                            <input type="submit" class="btn btn-success" value="Thêm" />
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Single Subject Modal -->
+        <div id="deleteSingleModal" class="modal fade">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h4 class="modal-title">Xác nhận xóa môn học</h4>
+                        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="deleteMessage">Bạn có chắc chắn muốn xóa môn học này?</p>
+                        <input type="hidden" id="deleteSubjectId">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn btn-danger" id="confirmDeleteSingleBtn">Xóa</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Modal xác nhận xoá nhiều-->
+        <div class="modal fade" id="confirmDeleteModal" tabindex="-1" role="dialog" aria-labelledby="confirmModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h4 class="modal-title" id="confirmModalLabel">Xác nhận xoá môn học</h4>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Đóng">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        Bạn có chắc chắn muốn xoá các môn học đã chọn không? Hành động này không thể hoàn tác.
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Huỷ</button>
+                        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Xoá</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast container -->
+        <div id="toastContainer" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;"></div>
+    </div>
+</body>
+
+</html>
