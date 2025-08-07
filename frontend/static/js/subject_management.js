@@ -307,9 +307,14 @@ async function uploadExcel() {
         // console.log("result.duplicated: ", result.duplicated)
         showToast(result.message || "Import thành công", "success");
         if (result.duplicated.length > 0) {
-            const existed_subjects = result.duplicated.join(", ");
-            const mes_dup = `Bỏ qua ${result.duplicated.length} môn học đã tồn tại: ${existed_subjects}`;
-            showToast(mes_dup, "warning");
+            result.duplicated.forEach(dup => {
+                showToast(dup, "warning");
+            });
+        }
+        if (result.errors.length > 0) {
+            result.errors.forEach(error => {
+                showToast(error, "danger");
+            });
         }
 
         fetchSubjects(); // Load lại danh sách môn học

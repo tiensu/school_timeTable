@@ -18,7 +18,6 @@ async function fetchTeachers(page = 1) {
     try {
         const res = await fetch(`http://localhost:8000/teachers?skip=${skip}&limit=${pageSize}&search=${searchParam}`);
         const result = await res.json();
-
         const data = result.data;
         console.log("Fetched teachers:", data);
         const total = result.total;
@@ -29,26 +28,24 @@ async function fetchTeachers(page = 1) {
         const table = document.querySelector("#teacherTableBody");
         table.innerHTML = "";
         data.forEach(cls => {
+            // console.log("cls.unavailable_days: ", cls.unavailable_days);
             table.innerHTML += `
             <tr class="text-center">
                 <td><input type="checkbox" class="row-checkbox" value="${cls.id}"></td>
                 <td>${cls.index}</td>
+                <td>${cls.code}</td>
                 <td>${cls.name}</td>
-                <td>${cls.subject}</td>
-                <td>${cls.phone}</td>
-                <td>${cls.email}</td>
-                <td>${cls.dob}</td>
-                <td>${cls.address}</td>
+                <td>${cls.subjects.join(", ")}</td>
                 <td>${cls.max_weekly_lessons}</td>
                 <td>${cls.available_morning ? "Có" : "Không"}</td>
                 <td>${cls.available_afternoon ? "Có" : "Không"}</td>
-                <td>${cls.unavailable_days}</td>
-                <td>${cls.status}</td>
+                <td>${cls.unavailable_days.join(", ")}</td>
+                <td>${cls.status === "active" ? "Đang dạy" : "Tạm dừng"}</td>
                 <td>
-                <a href="javascript:void(0)" class="edit" onclick="enableEdit(this, ${cls.id})">
+                <a href="javascript:void(0)" class="edit" onclick="enableEdit(this)">
                     <i class="material-icons" data-toggle="tooltip" title="Sửa">&#xE254;</i>
                 </a>
-                <a href="javascript:void(0)" class="save" style="display: none;" onclick="saveEdit(this, ${cls.id})">
+                <a href="javascript:void(0)" class="save" style="display: none;" onclick="saveEdit(this, '${cls.code}')">
                     <i class="material-icons" data-toggle="tooltip" title="Lưu">&#xE161;</i>
                 </a>
                 <a href="#" class="delete" onclick="showDeleteModal(${cls.id}, '${cls.name}')"><i class="material-icons" title="Delete">&#xE872;</i>
@@ -80,36 +77,58 @@ async function fetchTeachers(page = 1) {
     }
 }
 
-function enableEdit(el, teacherId) {
+async function enableEdit(el) {
     const row = el.closest("tr");
-    const editableIndexes = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // Các cột có thể chỉnh sửa
+    const editableIndexes = [2, 3, 4, 5, 6, 7, 8, 9]; // Các cột có thể chỉnh sửa
+    // Get subjects list from backend
+    const subjectsRes = await fetch("http://localhost:8000/subjects/names");
+    const subjectsResult = await subjectsRes.json();
+    const subjectsName = subjectsResult.subject_names;
     row.querySelectorAll("td").forEach((td, index) => {
-        if (index === 6) {
-            // Chỉ cho phép chỉnh sửa ngày sinh
-            // console.log("DoB: ", td.textContent.trim())
-            const rawText = td.textContent.trim(); // "23/4/2000"
-            const [d, m, y] = rawText.split('/');
-            const formatted = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-            console.log("formatted DoB: ", formatted);
-            td.innerHTML = `<input type="date" class="form-control form-control-sm" value="${formatted}">`;
-        } else if (index === 9 || index === 10) {
+        if (index === 4) {
+            console.log("subjectsName: ", subjectsName);
+            const currentValue = td.textContent.trim();
+            const selectedSubject = currentValue
+                .split(",")
+                .map(name => name.trim());
+            // Tạo HTML cho select box
+            let selectHTML = `<select id="list_subject" class="form-control form-control-sm" multiple>`;
+            subjectsName.forEach(name => {
+                const selected = currentValue === name ? "selected" : "";
+                selectHTML += `<option value="${name}" ${selected}>${name}</option>`;
+            });
+            selectHTML += `</select>`;
+            // Gán vào ô td
+            td.innerHTML = selectHTML;
+            const selectEl = td.querySelector('#list_subject');
+            for (const option of selectEl.options) {
+                if (selectedSubject.includes(option.value)) {
+                    option.selected = true; // hoặc option.setAttribute("selected", "selected");
+                }
+            }
+            // Khởi tạo plugin multiSelect
+            $(function () {
+                $('#list_subject').multiSelect();
+            });
+        } 
+        else if (index === 6 || index === 7) {
             // Chỉ cho phép chỉnh sửa các cột có thể chọn Có/Không
             const currentValue = td.textContent.trim();
             td.innerHTML = `<select class="form-control form-control-sm">
                 <option value="true" ${currentValue === "Có" ? "selected" : ""}>Có</option>
                 <option value="false" ${currentValue === "Không" ? "selected" : ""}>Không</option>
             </select>`;
-        } else if (index === 11) {
+        } else if (index === 8) {
             // Chỉ cho phép chỉnh sửa ngày không dạy được
             const currentValue = td.textContent.trim();
-            const selectedNames = currentValue
+            const selectedDay = currentValue
                 .split(",")
                 .map(name => name.trim());
-            console.log("selectedNames:", selectedNames);
+            console.log("selectedDay:", selectedDay);
 
             // Tạo một select với nhiều lựa chọn
             td.innerHTML = `
-                <select id="people" name="people" multiple>
+                <select id="unavailable_day" name="people" multiple>
                     <option value="Thứ 2">Thứ 2</option>
                     <option value="Thứ 3">Thứ 3</option>
                     <option value="Thứ 4">Thứ 4</option>
@@ -118,19 +137,18 @@ function enableEdit(el, teacherId) {
                     <option value="Thứ 7">Thứ 7</option>
                 </select>`;
             // Gán selected cho từng option trước khi khởi tạo plugin
-            const selectEl = td.querySelector('#people');
+            const selectEl = td.querySelector('#unavailable_day');
             for (const option of selectEl.options) {
-                if (selectedNames.includes(option.value)) {
+                if (selectedDay.includes(option.value)) {
                     option.selected = true; // hoặc option.setAttribute("selected", "selected");
                 }
             }
             // Khởi tạo plugin multiSelect
             $(function () {
-                $('#people').multiSelect();
+                $('#unavailable_day').multiSelect();
             });
 
-
-        } else if (index === 12) {
+        } else if (index === 9) {
             // Chỉ cho phép chỉnh sửa trạng thái
             td.innerHTML = `<select class="form-control form-control-sm">
                 <option value="active" ${td.textContent.trim() === "Đang dạy" ? "selected" : ""}>Đang dạy</option>
@@ -147,65 +165,57 @@ function enableEdit(el, teacherId) {
     row.querySelector(".delete").style.display = "none";
 }
 
-async function saveEdit(el, teacherId) {
+async function saveEdit(el, teacherCode) {
     const row = el.closest("tr");
     const inputs = row.querySelectorAll("td input");
-    const name = inputs[1].value;
-    const subject = inputs[2].value;
-    const phone = inputs[3].value;
-    const email = inputs[4].value;
-    const dob = inputs[5].value;
-    // Chuyển đổi định dạng ngày sinh từ "dd/mm/yyyy" sang "yyyy-mm-dd"
-    const [y, m, d] = dob.split('-');
-    dob_formated = `${d}/${m}/${y}`; // → "23/04/2000"
-    const address = inputs[6].value;
-    const maxWeeklyLessons = inputs[7].value;
-    const availableMorning = inputs[8].value === "Có";
-    const availableAfternoon = inputs[9].value === "Có";
-    const unavailableDays = inputs[10].value.split(",").map(d => d.trim()); // Chuyển đổi chuỗi thành mảng
-    const status = inputs[11].value;
+    const selects = row.querySelectorAll("td select");
+    const new_code = inputs[1].value; // Mã giáo viên
+    const name = inputs[2].value;
+    const subjects = Array.from(selects[0].selectedOptions)
+        .map(option => option.value);
+    const maxWeeklyLessons = inputs[3].value;
+    const availableMorning = selects[1].value === "true" ? true : false; // Chuyển đổi từ "Có" hoặc "Không" thành boolean
+    const availableAfternoon = selects[2].value === "true" ? true : false; // Chuyển đổi từ "Có" hoặc "Không" thành boolean
+    const unavailableDays = Array.from(selects[3].selectedOptions)
+        .map(option => option.value);
+    const status = selects[4].value;
     const updatedValues = {
+        code: new_code, // Mã giáo viên
         name: name,
-        subject: subject,
-        phone: phone,
-        email: email,
-        dob: dob_formated,
-        address: address,
+        subjects: subjects,
         status: status,
         max_weekly_lessons: parseInt(maxWeeklyLessons) || 18, // Mặc định là 18 nếu không nhập
         available_morning: availableMorning, // Chuyển đổi từ "Có" hoặc "Không" thành boolean
         available_afternoon: availableAfternoon, // Chuyển đổi từ "Có" hoặc "Không" thành boolean
         unavailable_days: unavailableDays   // Mảng ngày không dạy được
     };
-    // console.log("Updated values:", updatedValues);
-    if (!validateTeacherData(name, subject, phone, email, dob_formated, address)) return;
+    console.log("Updated values:", updatedValues);
+    if (!validateTeacherData(new_code, name, subjects)) return;
 
-    const res = await fetch(`http://localhost:8000/teachers/${teacherId}`, {
+    const res = await fetch(`http://localhost:8000/teachers/${teacherCode}`, {
         method: "PUT",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedValues)
     });
     if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.detail || "Lỗi khi xóa lớp.");
+        throw new Error(error.detail || "Lỗi khi cập nhật thông tin giáo viên.");
     }
     const result = await res.json();
-    showToast(result.message || "Đã cập nhật lớp");
+    showToast(result.message || "Đã cập nhật thông tin giáo viên");
 
     // Set lại từng cell bằng đúng giá trị bạn vừa dùng
     // Quay lại hiển thị bình thường
     row.querySelectorAll("td:not(:first-child):not(:last-child)").forEach((td, idx) => {
-        if (idx === 1) td.innerHTML = updatedValues.name;
-        if (idx === 2) td.innerHTML = updatedValues.subject;
-        if (idx === 3) td.innerHTML = updatedValues.phone;
-        if (idx === 4) td.innerHTML = updatedValues.email;
-        if (idx === 5) td.innerHTML = updatedValues.dob;
-        if (idx === 6) td.innerHTML = updatedValues.address;
-        if (idx === 7) td.innerHTML = updatedValues.max_weekly_lessons;
-        if (idx === 8) td.innerHTML = updatedValues.available_morning == "true" ? "Có" : "Không";
-        if (idx === 9) td.innerHTML = updatedValues.available_afternoon == "true" ? "Có" : "Không";
-        if (idx === 10) td.innerHTML = updatedValues.unavailable_days.join(", "); // Hiển thị mảng ngày không dạy được
-        if (idx === 11) td.innerHTML = updatedValues.status;
+        let baseIdx = 1
+        if (idx === baseIdx) td.innerHTML = updatedValues.code;
+        if (idx === baseIdx + 1) td.innerHTML = updatedValues.name;
+        if (idx === baseIdx + 2) td.innerHTML = updatedValues.subjects.join(", ");
+        if (idx === baseIdx + 3) td.innerHTML = updatedValues.max_weekly_lessons;
+        if (idx === baseIdx + 4) td.innerHTML = updatedValues.available_morning == "true" ? "Có" : "Không";
+        if (idx === baseIdx + 5) td.innerHTML = updatedValues.available_afternoon == "true" ? "Có" : "Không";
+        if (idx === baseIdx + 6) td.innerHTML = updatedValues.unavailable_days.join(", "); // Hiển thị mảng ngày không dạy được
+        if (idx === baseIdx + 7) td.innerHTML = updatedValues.status === "active" ? "Đang dạy" : "Tạm dừng";
     });
 
     row.querySelector(".edit").style.display = "inline-block";
@@ -285,14 +295,60 @@ function renderPagination(totalPages, currentPage) {
 }
 
 async function addTeacher() {
+    const teacherCode = document.getElementById("teacherCode").value.trim();
     const name = document.getElementById("teacherName").value.trim();
-    const subject = document.getElementById("teacherSubject").value.trim();
+    const subjects = Array.from(document.getElementById("teacherSubject").selectedOptions)
+        .map(option => option.value);
     const phone = document.getElementById("teacherPhone").value.trim();
     const email = document.getElementById("teacherEmail").value.trim();
     const dob = document.getElementById("teacherDoB").value.trim();
+    // Chuyển đổi định dạng ngày sinh từ "dd/mm/yyyy" sang "yyyy-mm-dd"
+    const [y, m, d] = dob.split('-');
+    dob_formatted = `${m}/${d}/${y}`; // → "23/04/2000"
     const address = document.getElementById("teacherAddress").value.trim();
+    const maxWeeklyLessons = document.getElementById("teacherMaxLesson").value.trim();
+    const availableMorning = document.getElementById("teacherAvailableMorning").value.trim() === "true" ? true : false; // Chuyển đổi từ "Có" hoặc "Không" thành boolean
+    const availableAfternoon = document.getElementById("teacherAvailableAfternoon").value.trim() === "true" ? true : false; // Chuyển đổi từ "Có" hoặc "Không" thành boolean
+    const unavailableDays = Array.from(document.getElementById("teacherUnavailabeDay").selectedOptions)
+        .map(option => option.value);
+    const status = document.getElementById("teacherStatus").value.trim();
 
-    if (!validateTeacherData(name, subject, phone, email, dob, address)) return;
+    const addValues = {
+        code: teacherCode, // Mã giáo viên
+        name: name,
+        subject: subjects,
+        phone: phone,
+        email: email,
+        dob: dob_formatted,
+        address: address,
+        status: status,
+        max_weekly_lessons: parseInt(maxWeeklyLessons) || 18, // Mặc định là 18 nếu không nhập
+        available_morning: availableMorning, // Chuyển đổi từ "Có" hoặc "Không" thành boolean
+        available_afternoon: availableAfternoon, // Chuyển đổi từ "Có" hoặc "Không" thành boolean
+        unavailable_days: unavailableDays   // Mảng ngày không dạy được
+    };
+
+    // const addValues = {
+    //     "code": "abcd1234",
+    //     "name": "Nguyễn Việt Dũng",
+    //     "subject": [
+    //         "Toán 11"
+    //     ],
+    //     "phone": "1234567890",
+    //     "email": "tiensunguyen2103@gmail.com",
+    //     "dob": "07/03/2025",
+    //     "address": "Hà Nội",
+    //     "status": "active",
+    //     "max_weekly_lessons": 12,
+    //     "available_morning": true,
+    //     "available_afternoon": true,
+    //     "unavailable_days": [
+    //         "Thứ 2",
+    //         "Thứ 3"
+    //     ]
+    // };
+    console.log('addTeacher: ', addValues);
+    if (!validateTeacherData(teacherCode, name, subjects, phone, email, dob, address)) return;
 
     try {
         const response = await fetch("http://localhost:8000/teachers", {
@@ -300,14 +356,7 @@ async function addTeacher() {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                name: name,
-                subject: subject,
-                phone: phone,
-                email: email,
-                dob: dob,
-                address: address
-            })
+            body: JSON.stringify(addValues)
         });
 
         if (!response.ok) {
@@ -352,12 +401,17 @@ async function uploadExcel() {
         }
 
         const result = await res.json();
-        // console.log("result.duplicated: ", result.duplicated)
+        console.log("result import: ", result)
         showToast(result.message || "Import thành công", "success");
         if (result.duplicated.length > 0) {
-            const existed_teachers = result.duplicated.join(", ");
-            const mes_dup = `Bỏ qua ${result.duplicated.length} giáo viên đã tồn tại: ${existed_teachers}`;
-            showToast(mes_dup, "warning");
+            result.duplicated.forEach(dup => {
+                showToast(dup, "warning");
+            });
+        }
+        if (result.errors.length > 0) {
+            result.errors.forEach(error => {
+                showToast(error, "danger");
+            });
         }
 
         fetchTeachers(); // Load lại danh sách giáo viên
@@ -374,47 +428,28 @@ function goToPage(page) {
     fetchTeachers();
 }
 
-function validateTeacherData(name, subject, phone, email, dob, address) {
-    // Kiểm tra tên
-    if (!name || name.trim() === "") {
-        showToast("Tên giáo viên không được để trống", "danger");
-        return false;
+function validateTeacherData(code, name, subjects) {
+    const errors = [];
+
+    // 1. Mã giáo viên (code): không rỗng, không chứa ký tự đặc biệt, độ dài 3–10 ký tự
+    if (!code || typeof code !== 'string' || !/^[A-Za-z0-9]{3,10}$/.test(code)) {
+        errors.push("Mã giáo viên không hợp lệ (chỉ gồm chữ/số, 3–10 ký tự).");
     }
 
-    // Kiểm tra môn dạy
-    if (!subject || subject.trim() === "") {
-        showToast("Môn dạy không được để trống", "danger");
-        return false;
+    // 2. Tên: không rỗng, là chuỗi
+    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+        errors.push("Tên giáo viên không hợp lệ (tối thiểu 2 ký tự).");
     }
 
-    // Kiểm tra số điện thoại (10 chữ số, chỉ chứa số)
-    const phoneRegex = /^[0-9]{10}$/;
-    if (!phone || !phoneRegex.test(phone)) {
-        showToast("Số điện thoại không hợp lệ (phải gồm 10 chữ số)", "danger");
-        return false;
+    // 3. Môn dạy (subjects): phải là mảng, có ít nhất 1 môn
+    if (!Array.isArray(subjects) || subjects.length === 0) {
+        errors.push("Giáo viên phải dạy ít nhất một môn.");
     }
 
-    // Kiểm tra email (định dạng cơ bản)
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) {
-        showToast("Email không hợp lệ", "danger");
-        return false;
-    }
-
-    // Kiểm tra ngày sinh
-    console.log("dob: ", dob)
-    if (!dob || isNaN(Date.parse(dob))) {
-        showToast("Ngày sinh không hợp lệ", "danger");
-        return false;
-    }
-
-    // Kiểm tra địa chỉ
-    if (!address || address.trim() === "") {
-        showToast("Địa chỉ không được để trống", "danger");
-        return false;
-    }
-
-    return true;
+    return {
+        valid: errors.length === 0,
+        errors
+    };
 }
 
 async function deleteTeacherById(teacherId) {
@@ -475,7 +510,7 @@ function showToast(message, type = "success") {
     // Tự xoá sau 3 giây
     setTimeout(() => {
         toast.remove();
-    }, 3000);
+    }, type === "danger" || "warning" ? 10000 : 3000); // Thông báo lỗi hiển thị lâu hơn
 }
 
 
@@ -541,6 +576,41 @@ $(document).ready(function () {
     $("#pageSizeSelector").click(function () {
         pageSize = parseInt(this.value);
         fetchTeachers(1); // Load lại từ trang đầu tiên
+    });
+});
+
+// Tải danh sách môn học khi trang được tải để hiển thị trong select box
+$(document).ready(function () {
+    fetch("http://localhost:8000/subjects/names")
+        .then(response => response.json())
+        .then(data => {
+            const subjectNames = data.subject_names; // backend trả về: { subject_names: [...] }
+            console.log("Danh sách môn học:", subjectNames);
+            const selectElement = document.getElementById("teacherSubject");
+
+            // Xóa các option cũ (nếu cần), nhưng giữ lại option mặc định
+            // selectElement.innerHTML = `<option disabled selected>-- Chọn môn học --</option>`;
+
+            subjectNames.forEach(name => {
+                const option = document.createElement("option");
+                option.value = name;
+                option.textContent = name;
+                selectElement.appendChild(option);
+            });
+            // Khởi tạo plugin multiSelect
+            $(function () {
+                $('#teacherSubject').multiSelect();
+            });
+        })
+        .catch(error => {
+            console.error("Lỗi khi tải danh sách môn học:", error);
+        });
+});
+
+$(document).ready(function () {
+    // Khởi tạo plugin multiSelect cho select box môn học
+    $(function () {
+        $('#teacherUnavailabeDay').multiSelect();
     });
 });
 

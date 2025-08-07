@@ -14,13 +14,17 @@ from app.schema import subjects_schema
 router = APIRouter()
 
 # ========== HTML ROUTES ==========
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../frontend"))
+BASE_DIR = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "../../../frontend"))
+
 
 @router.get("/subject")
 def serve_subject_page():
     return FileResponse(os.path.join(BASE_DIR, "subject_management.html"))
 
 # ========== API UTILS ==========
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -29,6 +33,8 @@ def get_db():
         db.close()
 
 # ========== SUBJECTS ==========
+
+
 @router.post("/subjects")
 def create_subject(cls: subjects_schema.SubjectCreate, db: Session = Depends(get_db)):
     existing = db.query(Subject).filter(Subject.name == cls.name).first()
@@ -45,42 +51,73 @@ def create_subject(cls: subjects_schema.SubjectCreate, db: Session = Depends(get
 async def import_subjects(file: UploadFile = File(...), db: Session = Depends(get_db)):
     contents = await file.read()
     df = pd.read_excel(io.BytesIO(contents))
-    
+
     imported_count = 0
     duplicated = []
+    errors = []
 
-    for _, row in df.iterrows():
+    for idx, row in df.iterrows():
         try:
-            name = str(row[0]).strip()           # Cột A
-            code = str(row[1]).strip()           # Cột B
-            number_of_periods_per_week = int(row[2])           # Cột C
-            subject_group = row[3]          # Cột D
-            required = True if row[4] == "Có" else False
-            exam_required = True if row[5] == "Có" else False  # Cột F
-            description = str(row[6]).strip() if len(row) > 6 else None  # Cột G
-            status = str(row[7]).strip() if len(row) > 7 else "Đang dạy"  # Cột H, mặc định là "active"
-            logger.info(f"Importing subject: {name}, Code: {code}, Required: {required}, Periods/Week: {number_of_periods_per_week}, Group: {subject_group}, Exam Required: {exam_required}, Description: {description}, Status: {status}")
-            # Kiểm tra môn học đã tồn tại
+            name = str(row[0]).strip() if pd.notna(row[0]) else None
+            code = str(row[1]).strip() if pd.notna(row[1]) else None
+            number_of_periods_per_week = int(row[2]) if pd.notna(row[2]) else None
+            subject_group = str(row[3]).strip() if pd.notna(row[3]) else None
+            required = str(row[4]).strip() == "Có" if pd.notna(
+                row[4]) else False
+            exam_required = str(row[5]).strip(
+            ) == "Có" if pd.notna(row[5]) else False
+            description = str(row[6]).strip() if len(
+                row) > 6 and pd.notna(row[6]) else None
+            status = str(row[7]).strip() if len(
+                row) > 7 and pd.notna(row[7]) else "active"
+
+            if not name or not code:
+                raise ValueError("Thiếu tên hoặc mã môn học")
+
             existing = db.query(Subject).filter(Subject.code == code).first()
             if existing:
                 duplicated.append(name)
                 continue
 
-            # Thêm môn học mới
-            subject_obj = Subject(name=name, code=code, required=required, num_periods_per_week=number_of_periods_per_week, subject_group=subject_group, exam_required=exam_required, description=description, status=status)
+            subject_obj = Subject(
+                name=name,
+                code=code,
+                required=required,
+                num_periods_per_week=number_of_periods_per_week,
+                subject_group=subject_group,
+                exam_required=exam_required,
+                description=description,
+                status=status
+            )
             db.add(subject_obj)
             imported_count += 1
+
         except Exception as e:
-            logger.error(f"Error importing row {row[0]}: {e}")
-            duplicated.append(f"{row[0]} (Lỗi: {str(e)})")
+            errors.append(f"Dòng {idx+2} ({row[0]}): {str(e)}")
 
     db.commit()
-
     return {
-        "message": f"Đã import thành công {imported_count} môn học",
-        "imported_count": imported_count,
-        "duplicated": duplicated
+        "imported": imported_count,
+        "duplicated": duplicated,
+        "errors": errors
     }
+
+
+@router.get("/subjects/names")
+def get_subject_name():
+    logger.info(f'Fetch subjects name ...')
+    session = SessionLocal()
+    try:
+        subjects = session.query(Subject.name).all()
+        subject_names = [s[0] for s in subjects]
+        logger.info(f'Subjects fetched: {subject_names}')
+        return {"subject_names": subject_names}
+    except Exception as e:
+        logger.error(f"Error fetching subjects: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    finally:
+        session.close()
+
 
 @router.get("/subjects")
 def get_subjects(skip: int = 0, limit: int = 10, search: str = ""):
@@ -108,9 +145,11 @@ def get_subjects(skip: int = 0, limit: int = 10, search: str = ""):
 def get_subject_count(db: Session = Depends(get_db)):
     return {"count": db.query(Subject).count()}
 
+
 @router.put("/subjects/{subject_id}")
 def update_subject(subject_id: int, subject_update: subjects_schema.SubjectCreate, db: Session = Depends(get_db)):
-    logger.info(f"Updating subject with ID: {subject_id} with data: {subject_update}")
+    logger.info(
+        f"Updating subject with ID: {subject_id} with data: {subject_update}")
     db_subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not db_subject:
         logger.error(f"Subject with ID {subject_id} not found.")
@@ -128,6 +167,8 @@ def update_subject(subject_id: int, subject_update: subjects_schema.SubjectCreat
     return {"message": f"Cập nhập thông tin môn học {subject_update.name} thành công!"}
 
 # DELETE /subjects/{subject_id}
+
+
 @router.delete("/subjects/{subject_id}")
 def delete_subject(subject_id: int, db: Session = Depends(get_db)):
     logger.info(f'Deleting subject {subject_id}')
@@ -139,15 +180,20 @@ def delete_subject(subject_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": f"Xóa môn học {db_subject.name} thành công!"}
 # Schema input
+
+
 class SubjectDeleteRequest(BaseModel):
     subject_ids: list[int]
 
+
 @router.post("/subjects/delete-multiple")
 def delete_multiple_subjects(req: SubjectDeleteRequest, db: Session = Depends(get_db)):
-    deleted_count = db.query(Subject).filter(Subject.id.in_(req.subject_ids)).delete(synchronize_session=False)
+    deleted_count = db.query(Subject).filter(Subject.id.in_(
+        req.subject_ids)).delete(synchronize_session=False)
     db.commit()
-    
+
     if deleted_count == 0:
-        raise HTTPException(status_code=404, detail="No matching subjects found to delete.")
+        raise HTTPException(
+            status_code=404, detail="No matching subjects found to delete.")
 
     return {"deleted": deleted_count, "message": f"Đã xóa {deleted_count} môn học thành công!"}

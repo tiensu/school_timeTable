@@ -11,7 +11,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" type="text/css" href="static/multi_select/multi_select.css">
-    <script type="text/javascript" src="static/multi_select/jquery-2.2.4.min.js"></script>
+    <!-- <script type="text/javascript" src="static/multi_select/jquery-2.2.4.min.js"></script> -->
     <script type="text/javascript" src="static/multi_select/jquery.multi-select.js"></script>
     <script src="static/js/teacher_management.js"></script>
 
@@ -64,18 +64,19 @@
                 <tr class="text-center">
                     <th><input type="checkbox" id="selectAll" /></th>
                     <th style="width: 50px;">#</th>
-                    <th>Họ và Tên</th>
-                    <th>Môn Dạy</th>
-                    <th>Số Điện Thoại</th>
-                    <th>Email</th>
-                    <th>Ngày Sinh</th>
-                    <th>Địa Chỉ</th>
-                    <th>Số tiết dạy tối đa 1 tuần</th>
-                    <th>Có thể dạy buổi sáng</th>
-                    <th>Có thể dạy buổi chiều</th>
-                    <th>Ngày không dạy được</th>
-                    <th>Trạng Thái</th>
-                    <th>Thao Tác</th>
+                    <th>Mã GV</th>
+                    <th>Họ tên</th>
+                    <th>Môn dạy</th>
+                    <!-- <th>Số ĐT</th> -->
+                    <!-- <th>Email</th>
+                    <th>Ngày sinh</th>
+                    <th>Địa chỉ</th> -->
+                    <th>Số tiết/tuần</th>
+                    <th>Dạy BS</th>
+                    <th>Dạy BC</th>
+                    <th>Không dạy</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
                 </tr>
             </thead>
             <tbody id="teacherTableBody">
@@ -105,39 +106,98 @@
 
         <!-- Add Teacher Modal -->
         <div id="addTeacherModal" class="modal fade">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-lg"> <!-- Tăng kích thước modal -->
                 <div class="modal-content">
                     <form id="teacherForm" onsubmit="event.preventDefault(); addTeacher();">
                         <div class="modal-header bg-dark text-white">
                             <h4 class="modal-title">Thêm giáo viên mới</h4>
                             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                         </div>
+
                         <div class="modal-body">
-                            <div class="form-group">
-                                <label>Họ Và Tên</label>
-                                <input type="text" id="teacherName" class="form-control" required />
-                            </div>
-                            <div class="form-group">
-                                <label>Môn Dạy</label>
-                                <input type="text" id="teacherSubject" class="form-control" required />
-                            </div>
-                            <div class="form-group">
-                                <label>Số Điện Thoại</label>
-                                <input type="number" id="teacherPhone" class="form-control" required />
-                            </div>
-                            <div class="form-group">
-                                <label>Email</label>
-                                <input type="email" id="teacherEmail" class="form-control" required />
-                            </div>
-                            <div class="form-group">
-                                <label>Ngày Sinh</label>
-                                <input type="date" id="teacherDoB" class="form-control" />
-                            </div>
-                            <div class="form-group">
-                                <label>Địa Chỉ</label>
-                                <input type="text" id="teacherAddress" class="form-control" />
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <!-- Cột 1 -->
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Mã Giáo Viên</label>
+                                            <input type="text" id="teacherCode" class="form-control" required />
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Tên Giáo Viên</label>
+                                            <input type="text" id="teacherName" class="form-control" required />
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Môn Dạy</label>
+                                            <div class="form-control" style="height: auto;">
+                                                <select id="teacherSubject" multiple>
+                                                    <!-- Options populated via JS -->
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <!-- <div class="form-group">
+                                            <label>Số Điện Thoại</label>
+                                            <input type="number" id="teacherPhone" class="form-control" required />
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Email</label>
+                                            <input type="email" id="teacherEmail" class="form-control" required />
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Ngày Sinh</label>
+                                            <input type="date" id="teacherDoB" class="form-control" />
+                                        </div> -->
+                                         <div class="form-group">
+                                            <label>Số Tiết/Tuần</label>
+                                            <input type="number" id="teacherMaxLesson" class="form-control" hint="Mặc định là 18"/>
+                                        </div>
+                                    </div>
+
+                                    <!-- Cột 2 -->
+                                    <div class="col-md-6">
+                                        <!-- <div class="form-group">
+                                            <label>Địa Chỉ</label>
+                                            <input type="text" id="teacherAddress" class="form-control" />
+                                        </div> -->
+                                        <div class="form-group">
+                                            <label>Dạy Buổi Sáng</label>
+                                            <select class="form-control" id="teacherAvailableMorning">
+                                                <option value="true">Có</option>
+                                                <option value="false">Không</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Dạy Buổi Chiều</label>
+                                            <select class="form-control" id="teacherAvailableAfternoon">
+                                                <option value="true">Có</option>
+                                                <option value="false">Không</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Ngày Không Dạy</label>
+                                            <div class="form-control" style="height: auto;">
+                                                <select id="teacherUnavailabeDay" class="form-control" multiple>
+                                                    <option value="Thứ 2">Thứ 2</option>
+                                                    <option value="Thứ 3">Thứ 3</option>
+                                                    <option value="Thứ 4">Thứ 4</option>
+                                                    <option value="Thứ 5">Thứ 5</option>
+                                                    <option value="Thứ 6">Thứ 6</option>
+                                                    <option value="Thứ 7">Thứ 7</option>
+                                                </select>
+                                            </div> 
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Trạng Thái Làm Việc</label>
+                                            <select class="form-control" id="teacherStatus">
+                                                <option value="active">Đang dạy</option>
+                                                <option value="inactive">Tạm nghỉ</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
                         <div class="modal-footer">
                             <input type="button" class="btn btn-default" data-dismiss="modal" value="Hủy" />
                             <input type="submit" class="btn btn-success" value="Thêm" />
@@ -146,6 +206,7 @@
                 </div>
             </div>
         </div>
+
 
         <!-- Delete Single Teacher Modal -->
         <div id="deleteSingleModal" class="modal fade">
@@ -194,4 +255,5 @@
         <div id="toastContainer" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;"></div>
     </div>
 </body>
+
 </html>
