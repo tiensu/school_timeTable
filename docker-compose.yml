@@ -35,7 +35,9 @@ services:
         - DATABASE_URL=postgresql://postgres:postgres@db:5432/timetable
       volumes:
         - ./backend:/app
-      command: ["./wait-for-it.sh", "db:5432", "--", "python", "import_sample_data.py"]
+      # command: ["./wait-for-it.sh", "db:5432", "--", "python", "import_sample_data.py"]
+      command: ["./wait-for-it.sh", "db:5432", "--timeout=30", "--strict", "--", "python", "import_sample_data.py"]
+
 
   frontend:
     image: nginx:alpine

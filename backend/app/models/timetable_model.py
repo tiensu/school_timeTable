@@ -7,4 +7,4 @@ class Timetable(Base):
     class_name = Column(String, ForeignKey("classes.name"))
     subject_code = Column(String, ForeignKey("subjects.code"))
     teacher_code = Column(String, ForeignKey("teachers.code"))
-    slot_id = Column(Integer, ForeignKey("time_slots.id"))
+    slot_id = Column(Integer, ForeignKey("timetable_slots.id"))
