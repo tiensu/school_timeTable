@@ -1,3 +1,8 @@
+const token = localStorage.getItem("access_token");
+if (!token) {
+    window.location.href = "/login.html";
+}
+
 let selectedFile = null;
 let currentPage = 1;
 let pageSize = 5;
@@ -28,7 +33,7 @@ async function fetchTeachers(page = 1) {
         const table = document.querySelector("#teacherTableBody");
         table.innerHTML = "";
         data.forEach(cls => {
-            // console.log("cls.unavailable_days: ", cls.unavailable_days);
+            // console.log("cls.unavailable_slots: ", cls.unavailable_slots);
             table.innerHTML += `
             <tr class="text-center">
                 <td><input type="checkbox" class="row-checkbox" value="${cls.id}"></td>
@@ -39,7 +44,7 @@ async function fetchTeachers(page = 1) {
                 <td>${cls.max_weekly_lessons}</td>
                 <td>${cls.available_morning ? "Có" : "Không"}</td>
                 <td>${cls.available_afternoon ? "Có" : "Không"}</td>
-                <td>${cls.unavailable_days.join(", ")}</td>
+                <td>${cls.unavailable_slots.join(", ")}</td>
                 <td>${cls.status === "active" ? "Đang dạy" : "Tạm dừng"}</td>
                 <td>
                 <a href="javascript:void(0)" class="edit" onclick="enableEdit(this)">
@@ -187,7 +192,7 @@ async function saveEdit(el, teacherCode) {
         max_weekly_lessons: parseInt(maxWeeklyLessons) || 18, // Mặc định là 18 nếu không nhập
         available_morning: availableMorning, // Chuyển đổi từ "Có" hoặc "Không" thành boolean
         available_afternoon: availableAfternoon, // Chuyển đổi từ "Có" hoặc "Không" thành boolean
-        unavailable_days: unavailableDays   // Mảng ngày không dạy được
+        unavailable_slots: unavailableDays   // Mảng ngày không dạy được
     };
     console.log("Updated values:", updatedValues);
     if (!validateTeacherData(new_code, name, subjects)) return;
@@ -214,7 +219,7 @@ async function saveEdit(el, teacherCode) {
         if (idx === baseIdx + 3) td.innerHTML = updatedValues.max_weekly_lessons;
         if (idx === baseIdx + 4) td.innerHTML = updatedValues.available_morning == "true" ? "Có" : "Không";
         if (idx === baseIdx + 5) td.innerHTML = updatedValues.available_afternoon == "true" ? "Có" : "Không";
-        if (idx === baseIdx + 6) td.innerHTML = updatedValues.unavailable_days.join(", "); // Hiển thị mảng ngày không dạy được
+        if (idx === baseIdx + 6) td.innerHTML = updatedValues.unavailable_slots.join(", "); // Hiển thị mảng ngày không dạy được
         if (idx === baseIdx + 7) td.innerHTML = updatedValues.status === "active" ? "Đang dạy" : "Tạm dừng";
     });
 
@@ -325,7 +330,7 @@ async function addTeacher() {
         max_weekly_lessons: parseInt(maxWeeklyLessons) || 18, // Mặc định là 18 nếu không nhập
         available_morning: availableMorning, // Chuyển đổi từ "Có" hoặc "Không" thành boolean
         available_afternoon: availableAfternoon, // Chuyển đổi từ "Có" hoặc "Không" thành boolean
-        unavailable_days: unavailableDays   // Mảng ngày không dạy được
+        unavailable_slots: unavailableDays   // Mảng ngày không dạy được
     };
 
     // const addValues = {
@@ -342,7 +347,7 @@ async function addTeacher() {
     //     "max_weekly_lessons": 12,
     //     "available_morning": true,
     //     "available_afternoon": true,
-    //     "unavailable_days": [
+    //     "unavailable_slots": [
     //         "Thứ 2",
     //         "Thứ 3"
     //     ]
@@ -615,3 +620,17 @@ $(document).ready(function () {
 });
 
 $(document).ready(fetchTeachers(1)); // Load trang đầu tiên khi DOM sẵn sàng
+
+// Logout functionality
+$(document).ready(function () {
+    const logoutBtn = document.getElementById("btnLogout");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("username");
+            localStorage.removeItem("role");
+            localStorage.removeItem("menu");
+            window.location.href = "/login.html"; // Redirect to login page
+        });
+    }
+});

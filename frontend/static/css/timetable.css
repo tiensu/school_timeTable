@@ -1,0 +1,46 @@
+/* Sticky header/left col for timetable grid */
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.sticky-left {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    background: white;
+}
+
+.cell {
+    min-height: 64px;
+}
+
+.badge {
+    border-radius: 9999px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+}
+
+.chip {
+    border-radius: 9999px;
+    padding: 0 8px;
+    font-size: 0.75rem;
+    line-height: 1.5rem;
+    display: inline-block;
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .print-bg {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    body {
+        background: #fff;
+    }
+}

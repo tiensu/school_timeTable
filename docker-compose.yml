@@ -10,6 +10,12 @@ services:
       - "5432:5432"
     volumes:
       - ./db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d timetable"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  
   backend:
     build:
       context: .
@@ -21,27 +27,29 @@ services:
     volumes:
       - ./backend:/app
     depends_on:
-      - db
-    command: ["./wait-for-it.sh", "db:5432", "--",
-            "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+      db:
+        condition: service_healthy
+    # command: ["./wait-for-it.sh", "db:5432", "--",
+    #         "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
-  db-init:
-      build:
-        context: .
-        dockerfile: Dockerfile.backend  # sử dụng chung Dockerfile backend
-      depends_on:
-        - db
-      environment:
-        - DATABASE_URL=postgresql://postgres:postgres@db:5432/timetable
-      volumes:
-        - ./backend:/app
-      # command: ["./wait-for-it.sh", "db:5432", "--", "python", "import_sample_data.py"]
+  # db-init:
+  #     build:
+  #       context: .
+  #       dockerfile: Dockerfile.backend  # sử dụng chung Dockerfile backend
+  #     depends_on:
+  #       - db
+  #     environment:
+  #       - DATABASE_URL=postgresql://postgres:postgres@db:5432/timetable
+  #     volumes:
+  #       - ./backend:/app
+  #     command: ["./wait-for-it.sh", "db:5432", "--", "python", "import_sample_data.py"]
       # command: ["./wait-for-it.sh", "db:5432", "--timeout=30", "--strict", "--", "python", "import_sample_data.py"]
-      command: >
-        sh -c "
-          ./wait-for-it.sh db:5432 -- python import_sample_data.py &&
-          python build_timetable.py
-        "
+      # command: >
+      #   sh -c "
+      #     ./wait-for-it.sh db:5432 -- python import_sample_data.py &&
+      #     python build_timetable.py
+      #   "
 
 
   frontend:

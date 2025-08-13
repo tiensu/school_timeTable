@@ -11,7 +11,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" type="text/css" href="static/multi_select/multi_select.css">
-    <!-- <script type="text/javascript" src="static/multi_select/jquery-2.2.4.min.js"></script> -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <script type="text/javascript" src="static/multi_select/jquery.multi-select.js"></script>
     <script src="static/js/teacher_management.js"></script>
 
@@ -22,7 +22,7 @@
         <div class="bg-dark text-white py-3 px-4 d-flex flex-wrap align-items-center justify-content-between"
             style="border-radius: 4px;">
             <div class="d-flex align-items-center flex-wrap">
-                <h5 class="mb-0 mr-4 font-weight-bold"><i class="fas fa-chalkboard mr-2"></i>Quản lý <span
+                <h5 class="mb-0 mr-4 font-weight-bold"><i class="bi bi-person-badge mr-2"></i>Quản lý <span
                         class="text-info">Giáo viên</span></h5>
             </div>
 
@@ -57,6 +57,12 @@
                 <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#confirmDeleteModal">
                     <i class="fas fa-trash-alt"></i> Xóa giáo viên
                 </button>
+                <div class="d-flex align-items-center gap-2">
+                    <span id="currentUser" class="text-secondary small"></span>
+                    <button id="btnLogout" class="btn btn-warning btn-sm">
+                        <i class="bi bi-door-closed"></i> Đăng xuất
+                    </button>
+                </div>
             </div>
         </div>
         <table class="table table-striped table-hover table-bordered">
@@ -147,9 +153,10 @@
                                             <label>Ngày Sinh</label>
                                             <input type="date" id="teacherDoB" class="form-control" />
                                         </div> -->
-                                         <div class="form-group">
+                                        <div class="form-group">
                                             <label>Số Tiết/Tuần</label>
-                                            <input type="number" id="teacherMaxLesson" class="form-control" hint="Mặc định là 18"/>
+                                            <input type="number" id="teacherMaxLesson" class="form-control"
+                                                hint="Mặc định là 18" />
                                         </div>
                                     </div>
 
@@ -184,7 +191,7 @@
                                                     <option value="Thứ 6">Thứ 6</option>
                                                     <option value="Thứ 7">Thứ 7</option>
                                                 </select>
-                                            </div> 
+                                            </div>
                                         </div>
                                         <div class="form-group">
                                             <label>Trạng Thái Làm Việc</label>
@@ -254,6 +261,13 @@
         <!-- Toast container -->
         <div id="toastContainer" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;"></div>
     </div>
+
+    <!-- <div class="d-flex align-items-center gap-2">
+        <span id="currentUser" class="text-secondary small"></span>
+        <button id="btnLogout" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-box-arrow-right"></i> Đăng xuất
+        </button>
+    </div> -->
 </body>
 
 </html>

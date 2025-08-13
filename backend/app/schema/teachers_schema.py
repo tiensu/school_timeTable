@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 from typing import List
 from typing import Optional
 
@@ -13,7 +13,7 @@ class TeacherBase(BaseModel):
     max_weekly_lessons: Optional[int] = 18
     available_morning: Optional[bool] = True
     available_afternoon: Optional[bool] = True
-    unavailable_days: Optional[List[str]] = [] 
+    unavailable_slots: Optional[List[int]] = [] 
 
 class TeacherCreate(BaseModel):
     name: str = Field(..., min_length=2)
@@ -25,7 +25,7 @@ class TeacherCreate(BaseModel):
     max_weekly_lessons: Optional[int] = 18
     available_morning: Optional[bool] = True
     available_afternoon: Optional[bool] = True
-    unavailable_days: Optional[List[str]] = []
+    unavailable_slots: Optional[List[int]] = []
 
 class TeacherUpdate(BaseModel):
     name: str = Field(..., min_length=2)
@@ -38,7 +38,7 @@ class TeacherUpdate(BaseModel):
     max_weekly_lessons: Optional[int] = 18
     available_morning: Optional[bool] = True
     available_afternoon: Optional[bool] = True
-    unavailable_days: Optional[List[str]] = []
+    unavailable_slots: Optional[List[int]] = []
 
 class TeacherRead(TeacherBase):
     id: int
@@ -55,5 +55,5 @@ class TeacherOut(BaseModel):
     max_weekly_lessons: Optional[int] = 18
     available_morning: Optional[bool] = True
     available_afternoon: Optional[bool] = True
-    unavailable_days: Optional[List[str]] = []
+    unavailable_slots: Optional[List[str]] = []
     index: Optional[int] = None

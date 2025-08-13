@@ -1,3 +1,8 @@
+const token = localStorage.getItem("access_token");
+if (!token) {
+    window.location.href = "/login.html";
+}
+
 let selectedFile = null;
 let currentPage = 1;
 let pageSize = 5;
@@ -432,3 +437,17 @@ $(document).ready(function () {
 });
 
 $(document).ready(fetchClasses(1)); // Load trang đầu tiên khi DOM sẵn sàng
+
+// Logout functionality
+$(document).ready(function () {
+    const logoutBtn = document.getElementById("btnLogout");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("username");
+            localStorage.removeItem("role");
+            localStorage.removeItem("menu");
+            window.location.href = "/login.html"; // Redirect to login page
+        });
+    }
+});

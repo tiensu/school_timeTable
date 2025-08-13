@@ -1,0 +1,40 @@
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+@media print {
+  #tbl-main, #tbl-main th, #tbl-main td {
+    border: 1px solid #000;
+    border-collapse: collapse;
+  }
+}
+
+@media print {
+  .print-hide {
+    display: none !important;
+  }
+}
+
+@media print {
+  #tbl-main th:last-child,
+  #tbl-main td:last-child {
+    display: none;
+  }
+}
+
+
+  #tbl-main, #tbl-main * {
+    visibility: visible;
+  }
+
+  #tbl-main {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+
+  #downloadReport {
+    display: none;
+  }
+}

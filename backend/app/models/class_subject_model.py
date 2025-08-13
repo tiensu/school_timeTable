@@ -1,9 +1,17 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
+# app/models/class_subject_link.py
+from sqlalchemy import Column, Table, String, ForeignKey, UniqueConstraint, Index
 from .model import Base
 
-class ClassSubject(Base):
-    __tablename__ = "class_subjects"
-    id = Column(Integer, primary_key=True)
-    class_name = Column(String, ForeignKey("classes.name"))
-    subject_code = Column(String, ForeignKey("subjects.code"))
-    lessons_per_week = Column(Integer)  # Số tiết môn này cho lớp này mỗi tuần
+class_subject_association = Table(
+    "class_subject",
+    Base.metadata,
+    Column("class_name", String,
+           ForeignKey("classes.name", ondelete="CASCADE", onupdate="CASCADE"),
+           nullable=False),
+    Column("subject_name", String,
+           ForeignKey("subjects.name", ondelete="CASCADE", onupdate="CASCADE"),
+           nullable=False),
+    # UniqueConstraint("class_name", "subject_code", name="uq_class_subject"),
+    # Index("ix_cs_class", "class_name"),
+    # Index("ix_cs_subject", "subject_code"),
+)

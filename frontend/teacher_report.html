@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Báo cáo số tiết theo giáo viên</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="/static/css/report.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-50 text-slate-800">
+    <div class="max-w-7xl mx-auto p-4 md:p-8">
+        <h1 class="text-2xl font-semibold mb-4">Báo cáo số tiết theo giáo viên</h1>
+
+        <div class="bg-white rounded-2xl shadow p-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                <div>
+                    <label class="block text-sm mb-1">Lọc môn (code)</label>
+                    <input id="f-subject" class="border rounded-lg p-2 w-full" placeholder="VD: MATH_12" />
+                </div>
+                <div>
+                    <label class="block text-sm mb-1">Lọc lớp</label>
+                    <input id="f-class" class="border rounded-lg p-2 w-full" placeholder="VD: 12A1" />
+                </div>
+                <div>
+                    <label class="block text-sm mb-1">Ngày</label>
+                    <select id="f-day" class="border rounded-lg p-2 w-full">
+                        <option value="">-- tất cả --</option>
+                        <option>Monday</option>
+                        <option>Tuesday</option>
+                        <option>Wednesday</option>
+                        <option>Thursday</option>
+                        <option>Friday</option>
+                        <option>Saturday</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm mb-1">Buổi</label>
+                    <select id="f-session" class="border rounded-lg p-2 w-full">
+                        <option value="">-- tất cả --</option>
+                        <option value="morning">morning</option>
+                        <option value="afternoon">afternoon</option>
+                        <option value="evening">evening</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button id="btn-load" class="px-4 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-900 w-full">Tải báo cáo</button>
+                    <!-- Khung thông báo -->
+                    <p id="report-msg" class="text-sm mt-3"></p>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow">
+            <div class="px-4 py-3 border-b flex items-center justify-between">
+                <h2 class="font-medium">Tổng hợp theo giáo viên</h2>
+                <!-- Ô tìm nhanh -->
+                <input id="s-text" type="text" placeholder="Nhập tên hoặc mã giáo viên để tìm..." class="border rounded-lg p-2 w-80" />
+                <!-- <input type="text" id="searchInput" class="form-control" placeholder="Nhập tên hoặc mã giáo viên để tìm..."> -->
+                 <button id="downloadReport" class="px-4 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-900">Download báo cáo</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm border-gray-400" id="tbl-main">
+                    <thead class="bg-slate-100 text-slate-700">
+                        <tr>
+                            <th class="px-3 py-2 text-left border-gray-400">Mã GV</th>
+                            <th class="px-3 py-2 text-left border-gray-400">Tên GV</th>
+                            <th class="px-3 py-2 text-left border-gray-400">Tổng tiết</th>
+                            <th class="px-3 py-2 text-left border-gray-400">Quota</th>
+                            <th class="px-3 py-2 text-left border-gray-400">% sử dụng</th>
+                            <th class="px-3 py-2 text-left border-gray-400">Overload</th>
+                            <th class="px-3 py-2 text-left border-gray-400">Theo môn</th>
+                            <th class="px-3 py-2 text-left border-gray-400">Theo lớp</th>
+                            <th class="px-3 py-2 text-left border-gray-400">Theo ngày</th>
+                            <th class="px-3 py-2 text-left border-gray-400">Theo buổi</th>
+                            <th class="px-3 py-2 text-left border-gray-400 print-hide"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tb-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Chi tiết -->
+        <div id="detail" class="hidden fixed inset-0 bg-black/40 p-4">
+            <div class="bg-white max-w-3xl mx-auto mt-10 rounded-xl shadow">
+                <div class="px-4 py-3 border-b flex items-center justify-between">
+                    <h3 id="detail-title" class="font-medium">Chi tiết</h3>
+                    <button id="btn-close" class="px-3 py-1 rounded bg-slate-800 text-white">Đóng</button>
+                </div>
+                <div class="p-4 overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-slate-100 text-slate-700">
+                            <tr>
+                                <th class="px-3 py-2 text-left">Lớp</th>
+                                <th class="px-3 py-2 text-left">Môn</th>
+                                <th class="px-3 py-2 text-left">Thứ</th>
+                                <th class="px-3 py-2 text-left">Buổi</th>
+                                <th class="px-3 py-2 text-left">Tiết</th>
+                                <th class="px-3 py-2 text-left">Slot ID</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detail-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <script src="/static/js/teacher_report.js"></script>
+</body>
+
+</html>

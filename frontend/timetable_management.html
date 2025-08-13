@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thời khóa biểu</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="static/js/timetable_management.js" defer></script>
+  <link rel="stylesheet" href="static/css/timetable.css" />
+
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <div class="max-w-7xl mx-auto p-4 sm:p-6">
+    <!-- Header -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold">📚 Thời khóa biểu</h1>
+        <p class="text-slate-500">Xem và lọc theo lớp, giáo viên. In/PDF hoặc xuất CSV dễ dàng.</p>
+      </div>
+      <div class="flex gap-2 no-print">
+        <button id="btnPrint" class="px-4 py-2 bg-slate-900 text-white rounded-xl hover:opacity-90">In / Lưu PDF</button>
+        <button id="btnCSV" class="px-4 py-2 bg-white border border-slate-300 rounded-xl hover:bg-slate-100">Xuất CSV</button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 no-print">
+      <div class="col-span-1">
+        <label class="block text-sm text-slate-600 mb-1">Lớp</label>
+        <select id="filterClass" class="w-full border border-slate-300 rounded-xl px-3 py-2 bg-white">
+          <option value="">— Tất cả —</option>
+        </select>
+      </div>
+      <div class="col-span-1">
+        <label class="block text-sm text-slate-600 mb-1">Giáo viên</label>
+        <select id="filterTeacher" class="w-full border border-slate-300 rounded-xl px-3 py-2 bg-white">
+          <option value="">— Tất cả —</option>
+        </select>
+      </div>
+      <div class="col-span-2">
+        <label class="block text-sm text-slate-600 mb-1">Tìm kiếm nhanh</label>
+        <input id="searchBox" type="text" placeholder="Nhập tên môn, mã môn, giáo viên..." class="w-full border border-slate-300 rounded-xl px-3 py-2 bg-white" />
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-4 no-print" id="legend" class="flex flex-wrap gap-2"></div>
+
+    <!-- Grid -->
+    <div id="gridWrapper" class="mt-5 overflow-auto rounded-2xl shadow bg-white">
+      <!-- Grid rendered by JS -->
+    </div>
+  </div>
+</body>
+</html>

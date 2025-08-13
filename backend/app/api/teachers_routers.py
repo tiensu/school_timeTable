@@ -44,7 +44,7 @@ def create_teacher(item: teachers_schema.TeacherCreate, db: Session = Depends(ge
         max_weekly_lessons=item.max_weekly_lessons,
         available_morning=item.available_morning,
         available_afternoon=item.available_afternoon,
-        unavailable_days=item.unavailable_days,
+        unavailable_slots=item.unavailable_slots,
         subjects=subjects,
     )
     
@@ -88,7 +88,7 @@ async def import_teachers(file: UploadFile = File(...), db: Session = Depends(ge
             available_morning = True if len(row) > 5 and str(row[5]).strip() == "Có" else False
             available_afternoon = True if len(row) > 6 and str(row[6]).strip() == "Có" else False
             text = str(row[7]).strip() if len(row) > 7 and pd.notna(row[7]) else ""
-            unavailable_days = [d.strip() for d in text.split(",")] if text else []
+            unavailable_slots = [d.strip() for d in text.split(",")] if text else []
 
             # Kiểm tra giáo viên đã tồn tại
             existing = db.query(Teacher).filter(Teacher.code == code).first()
@@ -105,7 +105,7 @@ async def import_teachers(file: UploadFile = File(...), db: Session = Depends(ge
                 max_weekly_lessons=max_weekly_lessons,
                 available_morning=available_morning,
                 available_afternoon=available_afternoon,
-                unavailable_days=unavailable_days
+                unavailable_slots=unavailable_slots
             )
 
             db.add(teacher_obj)
@@ -135,6 +135,7 @@ def get_teachers(skip: int = 0, limit: int = 10, search: str = ""):
 
         total = query.count()
         teachers = query.offset(skip).limit(limit).all()
+        # logger.info(f'teachers: {teachers}, total: {total}')
 
         result = []
         for i, teacher in enumerate(teachers):
@@ -148,7 +149,10 @@ def get_teachers(skip: int = 0, limit: int = 10, search: str = ""):
                 max_weekly_lessons=teacher.max_weekly_lessons,
                 available_morning=teacher.available_morning,
                 available_afternoon=teacher.available_afternoon,
-                unavailable_days=teacher.unavailable_days,
+                unavailable_slots=[
+                    f"{slot.day_of_week}-{slot.session}-Tiết {slot.period}"
+                    for slot in teacher.unavailable_slots
+                ],
                 index=skip + i + 1
             )
             result.append(teacher_data.dict())
@@ -193,7 +197,7 @@ def update_teachers(teacher_code: str, teacher_update: teachers_schema.TeacherUp
     db_teacher.max_weekly_lessons = teacher_update.max_weekly_lessons
     db_teacher.available_morning = teacher_update.available_morning
     db_teacher.available_afternoon = teacher_update.available_afternoon
-    db_teacher.unavailable_days = teacher_update.unavailable_days
+    db_teacher.unavailable_slots = teacher_update.unavailable_slots
 
     db.commit()
     return {"message": f"Cập nhật thông tin giáo viên {teacher_update.name} thành công!"}

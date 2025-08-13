@@ -1,3 +1,8 @@
+const token = localStorage.getItem("access_token");
+if (!token) {
+    window.location.href = "/login.html";
+}
+
 let selectedFile = null;
 let currentPage = 1;
 let pageSize = 5;
@@ -35,7 +40,7 @@ async function fetchSubjects(page = 1) {
                 <td>${cls.index}</td>
                 <td>${cls.name}</td>
                 <td>${cls.code}</td>
-                <td>${cls.num_periods_per_week}</td>
+                <td>${cls.lesson_per_week}</td>
                 <td>${cls.subject_group || "Không có"}</td>
                 <td>${cls.required ? "Có" : "Không"}</td>
                 <td>${cls.exam_required ? "Có" : "Không"}</td>
@@ -494,3 +499,17 @@ $(document).ready(function () {
 });
 
 $(document).ready(fetchSubjects(1)); // Load trang đầu tiên khi DOM sẵn sàng
+
+// Logout functionality
+$(document).ready(function () {
+    const logoutBtn = document.getElementById("btnLogout");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("username");
+            localStorage.removeItem("role");
+            localStorage.removeItem("menu");
+            window.location.href = "/login.html"; // Redirect to login page
+        });
+    }
+});

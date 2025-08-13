@@ -24,7 +24,6 @@ def serve_subject_page():
 
 # ========== API UTILS ==========
 
-
 def get_db():
     db = SessionLocal()
     try:
@@ -110,7 +109,7 @@ def get_subject_name():
     try:
         subjects = session.query(Subject.name).all()
         subject_names = [s[0] for s in subjects]
-        logger.info(f'Subjects fetched: {subject_names}')
+        # logger.info(f'Subjects fetched: {subject_names}')
         return {"subject_names": subject_names}
     except Exception as e:
         logger.error(f"Error fetching subjects: {str(e)}")

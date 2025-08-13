@@ -9,6 +9,6 @@ teacher_subject_association = Table(
     "teacher_subject",
     Base.metadata,
     Column("teacher_code", String, ForeignKey("teachers.code")),
-    Column("subject_code", String, ForeignKey("subjects.code")),
+    Column("subject_name", String, ForeignKey("subjects.name")),
 )
 

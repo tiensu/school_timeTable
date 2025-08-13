@@ -1,0 +1,79 @@
+:root{
+    --card-radius: 1.25rem;
+    --card-shadow: 0 8px 24px rgba(0,0,0,.12);
+    --card-shadow-hover: 0 12px 32px rgba(0,0,0,.18);
+    --tile-size-min: 220px; /* tối thiểu để dễ bấm */
+}
+body{ background: #f7f9fc; }
+.app-header{
+    padding-block: 28px;
+}
+.tile{
+    border: 0;
+    border-radius: var(--card-radius);
+    min-height: var(--tile-size-min);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    gap: .5rem;
+    box-shadow: var(--card-shadow);
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+}
+.tile:hover, .tile:focus-visible{
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow-hover);
+    filter: brightness(1.02);
+    text-decoration: none;
+    color: #fff;
+}
+.tile i{
+    font-size: 2.25rem;
+    line-height: 1;
+}
+.tile .title{
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: .2px;
+}
+/* Màu theo chức năng */
+.tile.subjects{ background: #4A90E2; }
+.tile.classes{  background: #F5A623; }
+.tile.teachers{ background: #9B59B6; }
+.tile.settings{ background: #7F8C8D; }
+.tile.rooms{    background: #27AE60; }
+.tile.schedule{ background: #E74C3C; }
+
+/* Badge mô tả ngắn */
+.tile small{
+    opacity: .95;
+    font-weight: 500;
+}
+
+/* Card info bên dưới (tùy chọn) */
+.quick-cards .card{
+    border: 0;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+}
+
+.tile.reports { background:#FF9800; }
+.tile-wide{
+  min-height: 140px; /* thấp hơn 1 chút để “dài” mà không quá cao */
+  display:flex; align-items:center; justify-content:center; gap:.5rem;
+  flex-direction: row;               /* icon bên trái, chữ bên phải */
+}
+.tile-wide i{ font-size:2rem; margin-right:.5rem; }
+.tile-wide .title{ font-size:1.25rem; }
+
+.disabled-tile {
+  opacity: 0.6;
+  pointer-events: auto; /* vẫn nhận hover */
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
