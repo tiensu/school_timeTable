@@ -33,25 +33,6 @@ services:
     #         "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
-  # db-init:
-  #     build:
-  #       context: .
-  #       dockerfile: Dockerfile.backend  # sử dụng chung Dockerfile backend
-  #     depends_on:
-  #       - db
-  #     environment:
-  #       - DATABASE_URL=postgresql://postgres:postgres@db:5432/timetable
-  #     volumes:
-  #       - ./backend:/app
-  #     command: ["./wait-for-it.sh", "db:5432", "--", "python", "import_sample_data.py"]
-      # command: ["./wait-for-it.sh", "db:5432", "--timeout=30", "--strict", "--", "python", "import_sample_data.py"]
-      # command: >
-      #   sh -c "
-      #     ./wait-for-it.sh db:5432 -- python import_sample_data.py &&
-      #     python build_timetable.py
-      #   "
-
-
   frontend:
     image: nginx:alpine
     build:

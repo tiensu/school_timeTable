@@ -2,9 +2,12 @@
 document.addEventListener("DOMContentLoaded", () => {
   const API = "http://localhost:8000/api/timetable-slots";
   const API_CFG = `${API}/config`;
+  let deleteObject = null;
 
+  // Element helpers
   const $ = (sel) => document.querySelector(sel);
 
+  // Global DOM elements
   const cfgSummary = $("#cfg-summary");
   const cfgTbody = $("#cfg-tbody");
   const cfgMsg = $("#cfg-msg");
@@ -13,12 +16,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const selDelDay = $("#cfg-del-day");
   const selAddSession = $("#cfg-add-session");
   const selDelSession = $("#cfg-del-session");
-  const inpAddSessionPeriods = $("#cfg-add-session-periods");
-  const wrapPeriodCtrls = $("#cfg-period-controls");
 
-  const DAY_ALL = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-  const SES_ALL = ["morning","afternoon","evening"];
+  const inpAddSessionPeriods = $("#cfg-add-session-periods"); // currently unused
+  const wrapPeriodCtrls = $("#cfg-period-controls"); // currently unused
 
+  const selDayPerDay = $("#day-per-day");
+  const selSessionPerDay = $("#session-per-day");
+  const inpPeriodsPerDay = $("#periods-per-day");
+  const btnDayMinus = $("#btn-day-minus");
+  const btnDayPlus = $("#btn-day-plus");
+  const btnApplyPerDay = $("#btn-apply-per-day");
+
+  // Constants
+  const DAY_ALL = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const SES_ALL = ["morning", "afternoon", "evening"];
+
+  // Utility: Fetch Config
   async function fetchConfig() {
     const res = await fetch(API_CFG);
     if (!res.ok) throw new Error("Không tải được cấu hình");
@@ -31,39 +44,36 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderSummary(cfg) {
-    const daysHtml = `<div class="p-3 rounded-lg border">
-      <div class="text-xs text-slate-500">Ngày</div>
-      <div class="mt-1 font-medium">${cfg.days.length} ngày</div>
-      <div class="mt-1 text-slate-600">${cfg.days.join(", ") || "—"}</div>
-    </div>`;
-
-    const sessionsHtml = `<div class="p-3 rounded-lg border">
-      <div class="text-xs text-slate-500">Buổi</div>
-      <div class="mt-1 font-medium">${cfg.sessions.length} buổi</div>
-      <div class="mt-1 text-slate-600">${cfg.sessions.join(", ") || "—"}</div>
-    </div>`;
-
+    const daysHtml = buildSummaryBlock("Ngày", cfg.days.length, cfg.days.join(", "));
+    const sessionsHtml = buildSummaryBlock("Buổi", cfg.sessions.length, cfg.sessions.join(", "));
     const periodsList = cfg.sessions.map(s => `${s}: ${cfg.periods_per_session[s] ?? 0}`).join(", ");
-    const periodsHtml = `<div class="p-3 rounded-lg border">
-      <div class="text-xs text-slate-500">Số tiết/buổi (max theo ngày)</div>
-      <div class="mt-1 font-medium">${periodsList || "—"}</div>
-      <div class="mt-1 text-slate-500">Tổng slot: ${cfg.total_slots}</div>
-    </div>`;
-
+    const periodsHtml = `
+      <div class="p-3 rounded-lg border">
+        <div class="text-xs text-slate-500">Số tiết/buổi (max theo ngày)</div>
+        <div class="mt-1 font-medium">${periodsList || "—"}</div>
+        <div class="mt-1 text-slate-500">Tổng slot: ${cfg.total_slots}</div>
+      </div>`;
     cfgSummary.innerHTML = daysHtml + sessionsHtml + periodsHtml;
   }
 
+  function buildSummaryBlock(title, count, content) {
+    return `
+      <div class="p-3 rounded-lg border">
+        <div class="text-xs text-slate-500">${title}</div>
+        <div class="mt-1 font-medium">${count} ${title.toLowerCase()}</div>
+        <div class="mt-1 text-slate-600">${content || "—"}</div>
+      </div>`;
+  }
+
   function renderConfigTable(cfg) {
-    // Mỗi ngày một dòng
     const rows = (cfg.days || []).map((day, idx) => {
-      // Những buổi có slot ở ngày này
       const sessionsInDay = (cfg.sessions || [])
         .map(s => ({ s, cnt: (cfg.per_day_periods[s] && cfg.per_day_periods[s][day]) ? cfg.per_day_periods[s][day] : 0 }))
         .filter(x => x.cnt > 0);
 
       const sessionLines = sessionsInDay.length ? sessionsInDay.map(x => x.s) : ["—"];
       const periodLines = sessionsInDay.length
-        ? sessionsInDay.map(x => (x.cnt ? Array.from({length:x.cnt}, (_,i)=>i+1).join(", ") : "—"))
+        ? sessionsInDay.map(x => (x.cnt ? Array.from({ length: x.cnt }, (_, i) => i + 1).join(", ") : "—"))
         : ["—"];
 
       return `
@@ -72,26 +82,11 @@ document.addEventListener("DOMContentLoaded", () => {
           <td class="px-3 py-2 align-top">${day}</td>
           <td class="px-3 py-2 align-top">${linesToCell(sessionLines)}</td>
           <td class="px-3 py-2 align-top font-mono">${linesToCell(periodLines)}</td>
-        </tr>
-      `;
+        </tr>`;
     }).join("");
 
     cfgTbody.innerHTML = rows || `
-      <tr><td colspan="4" class="px-3 py-3 text-slate-500">Chưa có cấu hình slot.</td></tr>
-    `;
-  }
-
-  function renderPeriodControls(cfg) {
-    wrapPeriodCtrls.innerHTML = (cfg.sessions || []).map(s => {
-      const v = cfg.periods_per_session[s] ?? 0;
-      return `<div class="flex items-center gap-2 border rounded-lg p-2" data-session="${s}">
-        <span class="w-24 text-slate-700">${s}</span>
-        <button class="btn-per-minus px-2 py-1 border rounded">−</button>
-        <input type="number" min="0" max="12" value="${v}" class="inp-per border rounded p-1 w-20 text-center"/>
-        <button class="btn-per-plus px-2 py-1 border rounded">+</button>
-        <button class="btn-per-apply px-3 py-1 rounded bg-slate-800 text-white">Áp dụng</button>
-      </div>`;
-    }).join("");
+      <tr><td colspan="4" class="px-3 py-3 text-slate-500">Chưa có cấu hình slot.</td></tr>`;
   }
 
   function updateDeleteSelectors(cfg) {
@@ -103,161 +98,234 @@ document.addEventListener("DOMContentLoaded", () => {
     const cfg = await fetchConfig();
     renderSummary(cfg);
     renderConfigTable(cfg);
-    renderPeriodControls(cfg);
     updateDeleteSelectors(cfg);
   }
 
-  // --- Sự kiện: thêm/xoá ngày ---
-  $("#btn-cfg-add-day").addEventListener("click", async () => {
+  function setupEventListeners() {
+    $("#btn-cfg-add-day").addEventListener("click", handleAddDay);
+    // $("#btn-cfg-del-day").addEventListener("click", performDeleteDay);
+    $("#btn-cfg-add-session").addEventListener("click", handleAddSession);
+    $("#btn-cfg-del-session").addEventListener("click", handleDeleteSession);
+    setupPerDayControls();
+  }
+
+  async function handleAddDay() {
     cfgMsg.textContent = "";
     const day = selAddDay.value;
-    if (!day) { cfgMsg.textContent = "Chọn ngày cần thêm."; cfgMsg.className="text-rose-600"; return; }
+    if (!day) return showMsg("Chọn ngày cần thêm.", "rose");
+
     try {
       const res = await fetch(`${API}/config/add-day`, {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ day })
       });
-      if (!res.ok) throw new Error((await res.json()).detail || "Thêm ngày thất bại");
-      await reload();
-      cfgMsg.textContent = "Đã thêm ngày.";
-      cfgMsg.className = "text-emerald-600";
-    } catch (e) { cfgMsg.textContent = e.message; cfgMsg.className = "text-rose-600"; }
-  });
 
-  $("#btn-cfg-del-day").addEventListener("click", async () => {
-    cfgMsg.textContent = "";
-    const day = selDelDay.value;
-    if (!day) { cfgMsg.textContent = "Chọn ngày cần xoá."; cfgMsg.className="text-rose-600"; return; }
-    if (!confirm(`Xoá toàn bộ slot của ${day}?`)) return;
-    try {
-      const res = await fetch(`${API}/config/day/${encodeURIComponent(day)}`, { method: "DELETE" });
-      if (!res.ok) throw new Error((await res.json()).detail || "Xoá ngày thất bại");
-      await reload();
-      cfgMsg.textContent = "Đã xoá ngày.";
-      cfgMsg.className = "text-emerald-600";
-    } catch (e) { cfgMsg.textContent = e.message; cfgMsg.className = "text-rose-600"; }
-  });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Thêm ngày thất bại");
 
-  // --- Sự kiện: thêm/xoá buổi ---
-  $("#btn-cfg-add-session").addEventListener("click", async () => {
+      if (data.created === 0 && data.skipped === "day_exists") {
+        showMsg("Ngày đã tồn tại.", "orange");
+      } else {
+        await reload();
+        showMsg("Đã thêm ngày.", "emerald");
+      }
+    } catch (e) {
+      showMsg(e.message, "rose");
+    }
+  }
+
+  async function handleAddSession() {
     cfgMsg.textContent = "";
     const session = selAddSession.value;
-    // const periods = parseInt(inpAddSessionPeriods.value || "0", 10);
-    const periods = 5; // mặc định là 5
-    if (!session) { cfgMsg.textContent = "Chọn buổi cần thêm."; cfgMsg.className="text-rose-600"; return; }
-    // if (periods < 1) { cfgMsg.textContent = "Số tiết phải ≥ 1."; cfgMsg.className="text-rose-600"; return; }
+    const periods = 5; // default
+    if (!session) return showMsg("Chọn buổi cần thêm.", "rose");
+
     try {
       const res = await fetch(`${API}/config/add-session`, {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session, periods })
       });
       if (!res.ok) throw new Error((await res.json()).detail || "Thêm buổi thất bại");
-      await reload();
-      cfgMsg.textContent = "Đã thêm buổi.";
-      cfgMsg.className = "text-emerald-600";
-    } catch (e) { cfgMsg.textContent = e.message; cfgMsg.className = "text-rose-600"; }
-  });
 
-  $("#btn-cfg-del-session").addEventListener("click", async () => {
+      await reload();
+      showMsg("Đã thêm buổi.", "emerald");
+    } catch (e) {
+      showMsg(e.message, "rose");
+    }
+  }
+
+  async function handleDeleteSession() {
     cfgMsg.textContent = "";
     const session = selDelSession.value;
-    if (!session) { cfgMsg.textContent = "Chọn buổi cần xoá."; cfgMsg.className="text-rose-600"; return; }
+    if (!session) return showMsg("Chọn buổi cần xoá.", "rose");
     if (!confirm(`Xoá toàn bộ slot của buổi ${session}?`)) return;
+
     try {
       const res = await fetch(`${API}/config/session/${encodeURIComponent(session)}`, { method: "DELETE" });
       if (!res.ok) throw new Error((await res.json()).detail || "Xoá buổi thất bại");
+
       await reload();
-      cfgMsg.textContent = "Đã xoá buổi.";
-      cfgMsg.className = "text-emerald-600";
-    } catch (e) { cfgMsg.textContent = e.message; cfgMsg.className = "text-rose-600"; }
-  });
-
-  // --- Event delegation: điều chỉnh số tiết / buổi ---
-  wrapPeriodCtrls.addEventListener("click", async (e) => {
-    const wrap = e.target.closest("[data-session]");
-    if (!wrap) return;
-    const session = wrap.getAttribute("data-session");
-    const inp = wrap.querySelector(".inp-per");
-    let v = parseInt(inp.value || "0", 10);
-
-    if (e.target.classList.contains("btn-per-minus")) {
-      v = Math.max(0, v - 1);
-      inp.value = v;
+      showMsg("Đã xoá buổi.", "emerald");
+    } catch (e) {
+      showMsg(e.message, "rose");
     }
-    if (e.target.classList.contains("btn-per-plus")) {
-      v = Math.min(12, v + 1);
-      inp.value = v;
+  }
+
+  function handleDeleteSession(){
+    const selDelSession = $("#cfg-del-session");
+    const session = selDelSession.value;
+    if (!session) {
+      showToast("Chọn buổi cần xoá.", "danger");
+      return;
     }
-    if (e.target.classList.contains("btn-per-apply")) {
-      cfgMsg.textContent = "";
-      try {
-        const res = await fetch(`${API}/config/periods`, {
-          method: "PUT",
-          headers: {"Content-Type":"application/json"},
-          body: JSON.stringify({ session, periods: v })
-        });
-        if (!res.ok) throw new Error((await res.json()).detail || "Cập nhật số tiết thất bại");
-        await reload();
-        cfgMsg.textContent = `Đã áp dụng: ${session} → ${v} tiết/buổi`;
-        cfgMsg.className = "text-emerald-600";
-      } catch (err) {
-        cfgMsg.textContent = err.message;
-        cfgMsg.className = "text-rose-600";
-      }
-    }
-  });
+    message = `Bạn có chắc chắn muốn xoá buổi <strong>${session}</strong>?<br>`;
+    showDeleteDialog(message);
+  }
 
-  // --- Biến điều khiển per-day ---
-const selDayPerDay = document.querySelector("#day-per-day");
-const selSessionPerDay = document.querySelector("#session-per-day");
-const inpPeriodsPerDay = document.querySelector("#periods-per-day");
-const btnDayMinus = document.querySelector("#btn-day-minus");
-const btnDayPlus = document.querySelector("#btn-day-plus");
-const btnApplyPerDay = document.querySelector("#btn-apply-per-day");
-
-// Nút +/- cho input per-day
-if (btnDayMinus && btnDayPlus) {
-  btnDayMinus.addEventListener("click", () => {
-    const v = Math.max(0, parseInt(inpPeriodsPerDay.value || "0", 10) - 1);
-    inpPeriodsPerDay.value = v;
-  });
-  btnDayPlus.addEventListener("click", () => {
-    const v = Math.min(12, parseInt(inpPeriodsPerDay.value || "0", 10) + 1);
-    inpPeriodsPerDay.value = v;
-  });
-}
-
-// Áp dụng per-day
-if (btnApplyPerDay) {
-  btnApplyPerDay.addEventListener("click", async () => {
+  async function handleApplyPerDay() {
     cfgMsg.textContent = "";
     const day = selDayPerDay.value;
     const session = selSessionPerDay.value;
     const periods = parseInt(inpPeriodsPerDay.value || "0", 10);
 
-    if (!day) { cfgMsg.textContent = "Chọn ngày."; cfgMsg.className="text-rose-600"; return; }
-    if (!session) { cfgMsg.textContent = "Chọn buổi."; cfgMsg.className="text-rose-600"; return; }
-    if (periods < 0 || periods > 12) { cfgMsg.textContent = "Số tiết 0..12."; cfgMsg.className="text-rose-600"; return; }
+    if (!day || !session || periods < 0 || periods > 12)
+      return showMsg("Dữ liệu không hợp lệ (chọn ngày, buổi, số tiết 0..12)", "rose");
 
     try {
       const res = await fetch(`${API}/config/periods/day`, {
         method: "PUT",
-        headers: {"Content-Type":"application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ day, session, periods })
       });
-      if (!res.ok) throw new Error((await res.json()).detail || "Cập nhật số tiết (theo ngày) thất bại");
+      if (!res.ok) throw new Error((await res.json()).detail || "Cập nhật số tiết thất bại");
+
       await reload();
-      cfgMsg.textContent = `Đã áp dụng: ${day} - ${session} → ${periods} tiết`;
-      cfgMsg.className = "text-emerald-600";
+      showMsg(`Đã áp dụng: ${day} - ${session} → ${periods} tiết`, "emerald");
     } catch (err) {
-      cfgMsg.textContent = err.message;
-      cfgMsg.className = "text-rose-600";
+      showMsg(err.message, "rose");
     }
-  });
+  }
+
+  function setupPerDayControls() {
+    if (btnDayMinus && btnDayPlus) {
+      btnDayMinus.addEventListener("click", () => {
+        const v = Math.max(0, parseInt(inpPeriodsPerDay.value || "0", 10) - 1);
+        inpPeriodsPerDay.value = v;
+      });
+      btnDayPlus.addEventListener("click", () => {
+        const v = Math.min(12, parseInt(inpPeriodsPerDay.value || "0", 10) + 1);
+        inpPeriodsPerDay.value = v;
+      });
+    }
+
+    if (btnApplyPerDay) {
+      btnApplyPerDay.addEventListener("click", handleApplyPerDay);
+    }
+  }
+
+  // Init
+  setupEventListeners();
+  reload();
+});
+
+function handleDeleteDay() {
+  const selDelDay = $("#cfg-del-day").val();
+  if (!selDelDay) {
+    showToast("Chọn ngày cần xoá.", "danger");
+    return;
+  }
+  message = `Bạn có chắc chắn muốn xoá ngày <strong>${selDelDay}</strong>?<br>`;
+  $("#btn-cfg-del-day").off("click", performDeleteDay);
+  $("#btn-cfg-del-day").on("click", performDeleteDay);
+  showDeleteDialog(message);
 }
 
-  // Khởi tạo
-  reload();
+async function performDeleteDay() {
+  $("#confirmDeleteModal").modal("hide");
+    const BASE_API = "http://localhost:8000/api/timetable-slots";
+    const selDelDay = $("#cfg-del-day").val();
+    const delAPI = `${BASE_API}/config/day/${encodeURIComponent(selDelDay)}`;
+    console.log('API: ', delAPI);
+    const res = await fetch(delAPI, { method: "DELETE" });
+
+    if (res.status === 404) return showToast("Ngày không tồn tại trong cấu hình hiện tại.", "warning");
+    if (res.status === 400) {
+      showToast("Các tiết học của ngày này đã được sắp xếp trong thời khóa biểu. Hãy xóa thời khóa biểu trước rồi cấu hình lại.", "warning");
+      return;
+    }
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Xoá ngày thất bại");
+    }
+
+    await reload();
+    showToast("Đã xoá ngày.", "success");
+}
+
+function showDeleteDialog(message) {
+  document.getElementById("deleteMessage").innerHTML = message;
+  $("#confirmDeleteModal").modal("show");
+}
+
+function showToast(message, type = "success") {
+  const toast = document.createElement("div");
+  toast.className = `toast-message bg-${type}`;
+
+  // Màu nền theo loại thông báo
+  let bgColor = "#28a745"; // success
+  let fontColor = "#000";
+  if (type === "danger"){
+    bgColor = "#dc3545";
+    fontColor = "#fff";
+  } else if (type === "warning") {
+    bgColor = "#ffc107";
+  }
+
+  toast.innerHTML = `
+    <div style="
+      min-width: 200px;
+      margin-top: 10px;
+      padding: 12px 20px;
+      color: ${fontColor};
+      border-radius: 10px;
+      font-size: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      background-color: ${bgColor};
+      animation: slideIn 0.3s ease;
+    ">
+      ${message}
+    </div>
+  `;
+  const container = document.getElementById("toastContainer");
+  container.appendChild(toast);
+
+  // Tự xoá sau 3 giây
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
+}
+
+$(document).ready(function () {
+    // Home functionality
+    const homeBtn = document.getElementById("btnHome");
+    if (homeBtn) {
+        homeBtn.addEventListener("click", () => {
+            window.location.href = "/home.html"; // Redirect to home page
+        });
+    }
+
+    // Logout functionality
+    const logoutBtn = document.getElementById("btnLogout");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("username");
+            localStorage.removeItem("role");
+            localStorage.removeItem("menu");
+            window.location.href = "/login.html"; // Redirect to login page
+        });
+    }
 });

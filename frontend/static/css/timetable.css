@@ -30,7 +30,7 @@
     display: inline-block;
 }
 
-@media print {
+/* @media print {
     .no-print {
         display: none !important;
     }
@@ -43,4 +43,35 @@
     body {
         background: #fff;
     }
+} */
+
+/* Border bảng compact */
+.tkb-compact-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size:12px;
+  border: 1px solid #dee2e6;
 }
+.tkb-compact-table th,
+.tkb-compact-table td {
+  border: 1px solid #dee2e6;
+  padding: 4px 6px;
+}
+
+/* In: chỉ in gridWrapper và ngắt trang theo khối */
+@media print {
+  body * { visibility: hidden; }
+  #gridWrapper, #gridWrapper * { visibility: visible; }
+  #gridWrapper { position: absolute; left: 0; top: 0; width: 100%; }
+  .page-break { page-break-after: always; }
+  .no-print, #legend, #tkbError { display: none !important; }
+  .tkb-compact-table{font-size:10px}
+}
+
+.tkb-missing-table {
+    table-layout: fixed;
+    background-color: white;
+}
+
+
+

@@ -8,6 +8,7 @@ from app.api.timetable_slots_routes import router as timetable_slots_routers
 from app.api.timetables_routes import router as timetables_routers
 from app.api.reports_routes import router as reports_routers
 from app.api.user_routes import router as user_routers
+from app.api.home_routes import router as home_routes
 from app.models.model import Base, engine 
 # 👇 Import tất cả models để đảm bảo chúng được đăng ký vào Base
 from app.models import (
@@ -30,6 +31,7 @@ app.include_router(timetables_routers)
 app.include_router(timetable_slots_routers)
 app.include_router(reports_routers)
 app.include_router(user_routers)
+app.include_router(home_routes)
 
 app.add_middleware(
     CORSMiddleware,

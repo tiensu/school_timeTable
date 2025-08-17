@@ -250,3 +250,26 @@
         boot();
     }
 })();
+
+
+$(document).ready(function () {
+    // Home functionality
+    const homeBtn = document.getElementById("btnHome");
+    if (homeBtn) {
+        homeBtn.addEventListener("click", () => {
+            window.location.href = "/home.html"; // Redirect to home page
+        });
+    }
+
+    // Logout functionality
+    const logoutBtn = document.getElementById("btnLogout");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("username");
+            localStorage.removeItem("role");
+            localStorage.removeItem("menu");
+            window.location.href = "/login.html"; // Redirect to login page
+        });
+    }
+});

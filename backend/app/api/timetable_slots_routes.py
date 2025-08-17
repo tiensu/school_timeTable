@@ -6,7 +6,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.models.model import SessionLocal
 from app.models.timetable_slot_model import TimetableSlot
+from app.models.timetable_model import Timetable
+from app.models.teacher_unavailable_slot_model import teacher_unavailable_slot_association
 from loguru import logger
+from sqlalchemy import delete
 # from app.api.user_routes import require_admin
 
 # ========== API UTILS ==========
@@ -88,6 +91,21 @@ class SetPeriodsReq(BaseModel):
             raise ValueError(f"session phải thuộc {SESSION_CHOICES}")
         return v
 
+# --- Schema: đặt periods theo NGÀY & BUỔI ---
+class SetDayPeriodsReq(BaseModel):
+    day: str
+    session: str
+    periods: int = Field(..., ge=0, le=12)  # 0 = xoá tất cả period của (day, session)
+    @validator("day")
+    def v_day(cls, v):
+        if v not in DAY_CHOICES:
+            raise ValueError(f"day phải thuộc {DAY_CHOICES}")
+        return v
+    @validator("session")
+    def v_ses(cls, v):
+        if v not in SESSION_CHOICES:
+            raise ValueError(f"session phải thuộc {SESSION_CHOICES}")
+        return v
 # ----------------- APIs cấu hình -----------------
 
 @router.get("/config")
@@ -113,12 +131,41 @@ def config_add_day(body: AddDayReq, db: Session = Depends(get_db)):
 
 @router.delete("/config/day/{day}")
 def config_delete_day(day: str, db: Session = Depends(get_db)):
-    """Xoá toàn bộ slots thuộc ngày."""
+    """Xoá toàn bộ slots thuộc ngày nếu tồn tại, xử lý liên kết."""
+    
+    logger.info(f"Xoá toàn bộ slots của ngày: {day}")
     if day not in DAY_CHOICES:
         raise HTTPException(status_code=400, detail="Ngày không hợp lệ.")
-    deleted = db.query(TimetableSlot).filter(TimetableSlot.day_of_week == day).delete()
+
+    # Lấy danh sách các slot thuộc ngày đó
+    slots = db.query(TimetableSlot).filter(TimetableSlot.day_of_week == day).all()
+    if not slots:
+        raise HTTPException(status_code=404, detail="Ngày không tồn tại trong cấu hình hiện tại.")
+
+    slot_ids = [slot.id for slot in slots]
+
+    # Kiểm tra xem có slot nào đã được dùng trong bảng Timetable chưa
+    timetable_count = db.query(Timetable).filter(Timetable.slot_id.in_(slot_ids)).count()
+    if timetable_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Các tiết học của ngày này đã được sắp xếp trong thời khóa biểu. "
+                   "Hãy xóa thời khóa biểu trước rồi cấu hình lại."
+        )
+
+    # Xóa liên kết teacher_unavailable_slot_association
+    db.execute(
+        delete(teacher_unavailable_slot_association).where(
+            teacher_unavailable_slot_association.c.slot_id.in_(slot_ids)
+        )
+    )
+
+    # Xoá toàn bộ slot
+    deleted = db.query(TimetableSlot).filter(TimetableSlot.id.in_(slot_ids)).delete(synchronize_session=False)
     db.commit()
+
     return {"deleted": int(deleted)}
+
 
 @router.post("/config/add-session")
 def config_add_session(body: AddSessionReq, db: Session = Depends(get_db)):
@@ -188,3 +235,77 @@ def config_set_periods(body: SetPeriodsReq, db: Session = Depends(get_db)):
 
     db.commit()
     return {"session": body.session, "periods": body.periods, "created": created, "kept": kept, "removed": removed}
+    
+from fastapi import HTTPException
+
+def remove_slot_and_refs(db: Session, slot: TimetableSlot):
+    # ⚠️ Kiểm tra xem slot này có đang được dùng trong bảng timetables không
+    timetable_exists = db.query(Timetable).filter(Timetable.slot_id == slot.id).first()
+    if timetable_exists:
+        raise HTTPException(
+            status_code=400,
+            detail="Các tiết học của ngày này đã được sắp xếp trong thời khóa biểu. Hãy xóa thời khóa biểu trước rồi cấu hình lại."
+        )
+
+    # Xóa trong bảng liên kết
+    db.execute(
+        delete(teacher_unavailable_slot_association).where(
+            teacher_unavailable_slot_association.c.slot_id == slot.id
+        )
+    )
+
+    # Cuối cùng mới xóa slot
+    db.delete(slot)
+
+@router.put("/config/periods/day")
+def config_set_day_periods(body: SetDayPeriodsReq, db: Session = Depends(get_db)):
+    """
+    Đặt số tiết cho 1 (day, session) duy nhất.
+    - periods=0: xoá hết slot của (day, session).
+    - periods>0: đảm bảo tồn tại các period 1..N; xoá period > N nếu có.
+    """
+    logger.info(f"Đặt số tiết cho {body.day} {body.session} với periods={body.periods}")
+
+    existing = db.query(TimetableSlot).filter(
+        TimetableSlot.day_of_week == body.day,
+        TimetableSlot.session == body.session
+    ).all()
+
+    existing_by_period = {slot.period: slot for slot in existing}
+
+    created, kept, removed = 0, 0, 0
+
+    if body.periods == 0:
+        for slot in existing:
+            remove_slot_and_refs(db, slot)
+            removed += 1
+        db.commit()
+        return {
+            "day": body.day, "session": body.session,
+            "periods": 0, "created": 0, "kept": 0, "removed": removed
+        }
+
+    # Thêm thiếu từ 1 đến N
+    for p in range(1, body.periods + 1):
+        if p in existing_by_period:
+            kept += 1
+        else:
+            db.add(TimetableSlot(day_of_week=body.day, session=body.session, period=p))
+            created += 1
+
+    # Xoá các period > N
+    for p in sorted(existing_by_period):
+        if p > body.periods:
+            slot = existing_by_period[p]
+            remove_slot_and_refs(db, slot)
+            removed += 1
+
+    db.commit()
+    return {
+        "day": body.day,
+        "session": body.session,
+        "periods": body.periods,
+        "created": created,
+        "kept": kept,
+        "removed": removed
+    }

@@ -3,15 +3,20 @@ from typing import List, Dict, Optional
 from pydantic import BaseModel, Field, validator
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi.responses import JSONResponse, FileResponse
 from app.models.model import SessionLocal
 from app.models.classes_model import Class
 from app.models.subjects_model import Subject
 from app.models.teachers_model import Teacher
 from app.models.timetable_model import Timetable
 from app.models.timetable_slot_model import TimetableSlot
+from app.api.build_timetable import gen_timetable
 from loguru import logger
 
 router = APIRouter(prefix="/api/timetables", tags=["timetables"])
+DAY_CHOICES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+SESSION_CHOICES = ["morning", "afternoon", "evening"]  # tuỳ trường có thể bỏ evening
 # ========== API UTILS ==========
 def get_db():
     db = SessionLocal()
@@ -175,4 +180,18 @@ def config_set_day_periods(body: SetDayPeriodsReq, db: Session = Depends(get_db)
         "created": created, "kept": kept, "removed": removed
     }
 
-
+@router.post("/gen_timetable")
+def generate_timetable(db: Session = Depends(get_db)):
+    """
+    Generate a new timetable.
+    """
+    result = gen_timetable()
+    if not result["success"]:
+        # Trả về lỗi 400 kèm message
+        raise HTTPException(status_code=400, detail=result)
+    
+    # return {"status": "success", "message": result["message"]}
+    return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"detail": result["message"]}
+        )

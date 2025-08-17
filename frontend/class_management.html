@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Manage Classes</title>
+    <link rel="icon" href="/static/images/class-icon.png" type="image/png" />
+
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="static/css/style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -19,6 +21,12 @@
     <div class="container" style="max-width: 1500px;">
         <div class="bg-dark text-white py-3 px-4 d-flex flex-wrap align-items-center justify-content-between"
             style="border-radius: 4px;">
+            <!-- Nút Trang chủ -->
+            <div class="d-flex align-items-center">
+                <button id="btnHome" class="btn btn-primary btn-sm mr-2">
+                    <i class="fas fa-home mr-1"></i> Trang chủ
+                </button>
+            </div>
             <div class="d-flex align-items-center flex-wrap">
                 <h5 class="mb-0 mr-4 font-weight-bold"><i class="bi bi-building mr-2"></i>Quản lý <span
                         class="text-info">Lớp học</span></h5>
@@ -38,9 +46,6 @@
                     <input type="text" class="form-control" id="fileName" placeholder="Chọn file excel..." readonly
                         onclick="document.getElementById('excelFile').click();" style="cursor: pointer;">
                 </div>
-
-                <!-- Input file (ẩn) -->
-                <input type="file" id="excelFile" style="display: none;" onchange="handleFileSelected(this)">
 
                 <!-- Nút Import -->
                 <button class="btn btn-info btn-sm ml-2" onclick="uploadExcel();">
@@ -66,7 +71,7 @@
         <table class="table table-striped table-hover table-bordered">
             <thead>
                 <tr class="text-center">
-                    <th><input type="checkbox" id="selectAll"/></th>
+                    <th><input type="checkbox" id="selectAll" /></th>
                     <th style="width: 50px;">#</th>
                     <th>Tên Lớp</th>
                     <th>Khối</th>

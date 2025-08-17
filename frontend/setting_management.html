@@ -5,34 +5,43 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Cấu hình Time Slots</title>
+  <link rel="icon" href="/static/images/config-icon.png" type="image/png" />
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    <link rel="stylesheet" href="static/css/style.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="static/css/style.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
 </head>
 
 <body class="bg-gray-50 text-slate-800">
   <div class="max-w-6xl mx-auto p-4 md:p-8">
-    <!-- <h1 class="text-2xl font-semibold mb-4">Cấu hình khung thời gian (timetable_slots)</h1> -->
     <div class="bg-dark text-white py-3 px-4 d-flex flex-wrap align-items-center justify-content-between"
-            style="border-radius: 4px;">
-            <div class="d-flex align-items-center flex-wrap">
-                <h5 class="mb-0 mr-4 font-weight-bold"><i class="bi bi-sliders2-vertical mr-2"></i>Quản lý <span
-                        class="text-info">Cấu hình</span></h5>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <span id="currentUser" class="text-secondary small"></span>
-                <button id="btnLogout" class="btn btn-warning btn-sm">
-                    <i class="bi bi-door-closed"></i> Đăng xuất
-                </button>
-            </div>
-        </div>
-    
+      style="border-radius: 4px;">
+      <!-- Nút Trang chủ -->
+      <div class="d-flex align-items-center">
+        <button id="btnHome" class="btn btn-primary btn-sm mr-2">
+          <i class="fas fa-home mr-1"></i> Trang chủ
+        </button>
+      </div>
+      <!-- Tiêu đề trung tâm -->
+      <div class="d-flex align-items-center flex-wrap">
+        <h3 class="mb-0 mr-4 font-weight-bold" style="font-size: 30px;"><i class="bi bi-sliders2-vertical mr-2"></i>Quản lý <span
+            class="text-info">Cấu hình</span></h3>
+      </div>
+      <!-- Hiển thị tên và nút logout -->
+      <div class="d-flex align-items-center gap-2">
+        <span id="currentUser" class="text-secondary small"></span>
+        <button id="btnLogout" class="btn btn-warning btn-sm">
+          <i class="bi bi-door-closed"></i> Đăng xuất
+        </button>
+      </div>
+    </div>
+
     <!-- Cấu hình hiện tại -->
     <div class="bg-white rounded-2xl shadow p-4 mb-6">
       <!-- <h2 class="font-medium mb-3">Cấu hình hiện tại</h2> -->
@@ -85,7 +94,7 @@
               <option value="">-- chọn --</option>
             </select>
           </div>
-          <button id="btn-cfg-del-day" class="px-3 py-2 rounded bg-rose-600 text-white">Xóa</button>
+          <button id="" class="px-3 py-2 rounded bg-rose-600 text-white" onclick="handleDeleteDay()">Xóa</button>
         </div>
 
         <!-- Thêm buổi -->
@@ -117,10 +126,10 @@
       </div>
 
       <!-- Điều chỉnh số tiết theo buổi -->
-      <div class="mt-4">
+      <!-- <div class="mt-4">
         <h3 class="font-medium mb-2">Số tiết / buổi</h3>
         <div id="cfg-period-controls" class="flex flex-wrap gap-3"></div>
-      </div>
+      </div> -->
       <!-- Điều chỉnh số tiết THEO NGÀY & BUỔI -->
       <div class="mt-6">
         <h3 class="font-medium mb-2">Số tiết theo NGÀY & BUỔI</h3>
@@ -165,6 +174,30 @@
       <p id="cfg-msg" class="text-sm mt-2"></p>
     </div>
   </div>
+
+  <!-- Delete Day Dialog -->
+  <div id="confirmDeleteModal" class="modal fade">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h4 class="modal-title">Xác nhận xóa ngày</h4>
+          <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p id="deleteMessage">Bạn có chắc chắn muốn xóa ngày này?</p>
+          <input type="hidden" id="deleteSubjectId">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+          <button type="button" class="btn btn-danger" id="btn-cfg-del-day">Xóa</button>
+          <!-- <button type="button" class="btn btn-danger" id="confirmDeleteSingleBtn">Xóa</button> -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toastContainer" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;"></div>
 
   <script src="/static/js/setting_management.js"></script>
 </body>
