@@ -67,7 +67,7 @@ $(document).ready(function () {
         $text.text(" Đang xử lý...");
 
         $.ajax({
-            url: "http://localhost:8000/api/system/reset_data",
+            url: "http://localhost:8002/api/system/reset_data",
             type: "DELETE",
             headers: {
                 "Authorization": "Bearer " + (localStorage.getItem("access_token") || "")
@@ -129,7 +129,7 @@ $(document).ready(function () {
         }
 
         $.ajax({
-            url: "http://localhost:8000/api/system/import_data",
+            url: "http://localhost:8002/api/system/import_data",
             type: "POST",
             data: formData,
             processData: false,

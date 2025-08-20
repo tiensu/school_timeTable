@@ -3,8 +3,8 @@ from typing import List, Dict, Optional
 from pydantic import BaseModel, Field, validator
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from app.models.model import SessionLocal
 from app.models.classes_model import Class
 from app.models.subjects_model import Subject

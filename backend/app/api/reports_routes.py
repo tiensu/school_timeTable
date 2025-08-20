@@ -6,7 +6,6 @@ from loguru import logger
 from app.models.model import SessionLocal
 from app.models.teachers_model import Teacher
 from app.models.subjects_model import Subject
-from app.models.classes_model import Class
 from app.models.timetable_model import Timetable
 from app.models.timetable_slot_model import TimetableSlot
 

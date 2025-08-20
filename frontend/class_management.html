@@ -46,7 +46,8 @@
                     <input type="text" class="form-control" id="fileName" placeholder="Chọn file excel..." readonly
                         onclick="document.getElementById('excelFile').click();" style="cursor: pointer;">
                 </div>
-
+                <!-- Input file (ẩn) -->
+                <input type="file" id="excelFile" style="display: none;" onchange="handleFileSelected(this)">
                 <!-- Nút Import -->
                 <button class="btn btn-info btn-sm ml-2" onclick="uploadExcel();">
                     <i class="fas fa-upload"></i> Import
@@ -74,8 +75,9 @@
                     <th><input type="checkbox" id="selectAll" /></th>
                     <th style="width: 50px;">#</th>
                     <th>Tên Lớp</th>
-                    <th>Khối</th>
-                    <th>Sĩ Số</th>
+                    <th>GV Chủ Nhiệm</th>
+                    <th>Lớp Chuyên Đề</th>
+                    <th>Môn Học - Giáo Viên</th>
                     <th>Thao Tác</th>
                 </tr>
             </thead>

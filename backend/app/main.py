@@ -16,7 +16,6 @@ from app.models import (
     classes_model, 
     teachers_model, 
     subjects_model, 
-    teacher_subject_model, 
     class_subject_teacher_model, 
     class_subject_model, 
     timetable_model, 

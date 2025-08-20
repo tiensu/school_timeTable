@@ -1,6 +1,6 @@
 // frontend/static/js/timetable_slots.js
 document.addEventListener("DOMContentLoaded", () => {
-  const API = "http://localhost:8000/api/timetable-slots";
+  const API = "http://localhost:8002/api/timetable-slots";
   const API_CFG = `${API}/config`;
   let deleteObject = null;
 
@@ -244,7 +244,7 @@ function handleDeleteDay() {
 
 async function performDeleteDay() {
   $("#confirmDeleteModal").modal("hide");
-    const BASE_API = "http://localhost:8000/api/timetable-slots";
+    const BASE_API = "http://localhost:8002/api/timetable-slots";
     const selDelDay = $("#cfg-del-day").val();
     const delAPI = `${BASE_API}/config/day/${encodeURIComponent(selDelDay)}`;
     console.log('API: ', delAPI);

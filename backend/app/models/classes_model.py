@@ -9,8 +9,7 @@ class Class(Base):
     __tablename__ = "classes"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
-    grade = Column(Integer) # Khối lớp, ví dụ: 10, 11, 12
-    student_count = Column(Integer) # Số lượng học sinh trong lớp
+    specialized_class = Column(String) # Lớp chuyên, ví dụ: "Toán", "Lý", "Hóa"
     # Danh sách các môn học trong lớp
     subjects = relationship(
         "Subject",

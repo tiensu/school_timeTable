@@ -21,7 +21,7 @@ async function fetchSubjects(page = 1) {
     const searchParam = encodeURIComponent(currentSearch);
 
     try {
-        const res = await fetch(`http://localhost:8000/subjects?skip=${skip}&limit=${pageSize}&search=${searchParam}`);
+        const res = await fetch(`http://localhost:8002/subjects?skip=${skip}&limit=${pageSize}&search=${searchParam}`);
         const result = await res.json();
 
         const data = result.data;
@@ -37,16 +37,12 @@ async function fetchSubjects(page = 1) {
             table.innerHTML += `
             <tr class="text-center">
                 <td><input type="checkbox" class="row-checkbox" value="${cls.id}"></td>
-                <td>${cls.index}</td>
-                <td>${cls.name}</td>
-                <td>${cls.code}</td>
-                <td>${cls.lesson_per_week}</td>
-                <td>${cls.subject_group || "Không có"}</td>
-                <td>${cls.required ? "Có" : "Không"}</td>
-                <td>${cls.exam_required ? "Có" : "Không"}</td>
-                <td>${cls.description || "Không có"}</td>
-                <td>${cls.status === "active" ? "Đang dạy" : "Tạm dừng"}</td>
-                <td>
+                <td style="vertical-align: middle;">${cls.index}</td>
+                <td style="vertical-align: middle;">${cls.name}</td>
+                <td style="vertical-align: middle;">${cls.code}</td>
+                <td style="vertical-align: middle;">${cls.lesson_per_week}</td>
+                <td style="vertical-align: middle;">${cls.teachers_name.join("<br>") || "Không có"}</td>
+                <td style="vertical-align: middle;">
                 <a href="javascript:void(0)" class="edit" onclick="enableEdit(this, ${cls.id})">
                     <i class="material-icons" data-toggle="tooltip" title="Sửa">&#xE254;</i>
                 </a>
@@ -132,7 +128,7 @@ async function saveEdit(el, subjectId) {
     console.log("Updated values:", updatedValues);
     if (!validateSubjectData(name, code, num_periods_per_week, required, subject_group, exam_required, description, status)) return;
 
-    const res = await fetch(`http://localhost:8000/subjects/${subjectId}`, {
+    const res = await fetch(`http://localhost:8002/subjects/${subjectId}`, {
         method: "PUT",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedValues)
@@ -249,7 +245,7 @@ async function addSubject() {
     if (!validateSubjectData(name, code, num_periods_per_week, required, subject_group, exam_required, description, status)) return;
 
     try {
-        const response = await fetch("http://localhost:8000/subjects", {
+        const response = await fetch("http://localhost:8002/subjects", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -298,7 +294,7 @@ async function uploadExcel() {
     formData.append("file", file);
 
     try {
-        const res = await fetch("http://localhost:8000/subjects/import", {
+        const res = await fetch("http://localhost:8002/subjects/import", {
             method: "POST",
             body: formData,
         });
@@ -375,7 +371,7 @@ function validateSubjectData(name, code, num_periods_per_week, required, subject
 async function deleteSubjectById(subjectId) {
 
     try {
-        const res = await fetch(`http://localhost:8000/subjects/${subjectId}`, {
+        const res = await fetch(`http://localhost:8002/subjects/${subjectId}`, {
             method: 'DELETE'
         });
         if (!res.ok) {
@@ -444,7 +440,7 @@ async function deleteSelectedSubjects() {
     }
     console.log("selectedIds:", selectedIds)
     try {
-        const res = await fetch("http://localhost:8000/subjects/delete-multiple", {
+        const res = await fetch("http://localhost:8002/subjects/delete-multiple", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ subject_ids: selectedIds })

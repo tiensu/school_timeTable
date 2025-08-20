@@ -50,10 +50,9 @@ class TeacherOut(BaseModel):
     id: int
     name: str
     code: str
-    subjects: List[str]  # tên các môn học
-    status: Optional[str] = "active"
-    max_weekly_lessons: Optional[int] = 18
-    available_morning: Optional[bool] = True
-    available_afternoon: Optional[bool] = True
+    class_advisor: str
+    subj_class: List[str]  # tên các môn học
+    max_weekly_lessons: int
+    max_weekly_x: int
     unavailable_slots: Optional[List[str]] = []
     index: Optional[int] = None

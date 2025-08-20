@@ -3,16 +3,13 @@ import io
 import pandas as pd
 from app.models.model import SessionLocal
 from app.models.classes_model import Class
-from app.schema import classes_schema
 from app.models.subjects_model import Subject
 from app.models.teachers_model import Teacher
-from app.models.timetable_model import Timetable
 from app.models.timetable_slot_model import TimetableSlot
-from app.models.teacher_subject_model import teacher_subject_association
 from app.models.model import Base
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from loguru import logger
 

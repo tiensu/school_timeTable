@@ -1,9 +1,9 @@
-// const API = "http://localhost:8000/api/reports/teacher-load";
-// const API_DETAIL = "http://localhost:8000/api/reports/teacher-load/detail";
+// const API = "http://localhost:8002/api/reports/teacher-load";
+// const API_DETAIL = "http://localhost:8002/api/reports/teacher-load/detail";
 
 (function () {
-    const API = "http://localhost:8000/api/reports/teacher-load";
-    const API_DETAIL = "http://localhost:8000/api/reports/teacher-load/detail";
+    const API = "http://localhost:8002/api/reports/teacher-load";
+    const API_DETAIL = "http://localhost:8002/api/reports/teacher-load/detail";
 
     const $ = (s) => document.querySelector(s);
     const $$ = (s) => Array.from(document.querySelectorAll(s));
@@ -198,7 +198,7 @@
     //         if (fSession && fSession.value) params.set("session", fSession.value);
     //         if (searchValue) params.set("searchValue", searchValue);
 
-    //         const url = `http://localhost:8000/api/reports/teacher_load_pdf?${params.toString()}`;
+    //         const url = `http://localhost:8002/api/reports/teacher_load_pdf?${params.toString()}`;
     //         console.debug("[teacher-load] download URL:", url);
 
     //         fetch(url)

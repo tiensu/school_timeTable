@@ -10,14 +10,14 @@ SessionLocal = sessionmaker(bind=engine)
 db = SessionLocal()
 
 # Đọc Excel file
-df = pd.read_excel("sample_data/timetable_slots_template.xlsx")  # Đảm bảo file cùng thư mục hoặc nhập path đầy đủ
+df = pd.read_excel("sample_data/timetable_slots_information.xlsx")  # Đảm bảo file cùng thư mục hoặc nhập path đầy đủ
 
 # Lặp và ghi vào DB
 for _, row in df.iterrows():
     slot = TimetableSlot(
-        day_of_week=row["day_of_week"],
-        session=row["session"],
-        period=int(row["period"])
+        day_of_week=row[0],
+        session=row[1],
+        period=int(row[2])
     )
     db.add(slot)
 

@@ -1,7 +1,7 @@
 // ====== CONFIG: Update these endpoints if needed ======
-const API_CLASSES = "http://localhost:8000/api/timetables/classes";
-const API_TEACHERS = "http://localhost:8000/api/timetables/teachers";
-const API_TIMETABLE = "http://localhost:8000/api/timetables/view";
+const API_CLASSES = "http://localhost:8002/api/timetables/classes";
+const API_TEACHERS = "http://localhost:8002/api/timetables/teachers";
+const API_TIMETABLE = "http://localhost:8002/api/timetables/view";
 // ======================================================
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -635,7 +635,7 @@ $(document).ready(function () {
         $text.html(" Đang cập nhật...");
 
         $.ajax({
-            url: "http://localhost:8000/api/timetables/gen_timetable",
+            url: "http://localhost:8002/api/timetables/gen_timetable",
             type: "POST",
             headers: {
                 "Authorization": "Bearer " + (localStorage.getItem("access_token") || "")

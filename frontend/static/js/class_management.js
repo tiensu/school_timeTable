@@ -21,7 +21,7 @@ async function fetchClasses(page = 1) {
     const searchParam = encodeURIComponent(currentSearch);
 
     try {
-        const res = await fetch(`http://localhost:8000/classes?skip=${skip}&limit=${pageSize}&search=${searchParam}`);
+        const res = await fetch(`http://localhost:8002/classes?skip=${skip}&limit=${pageSize}&search=${searchParam}`);
         const result = await res.json();
 
         const data = result.data;
@@ -37,11 +37,12 @@ async function fetchClasses(page = 1) {
             table.innerHTML += `
             <tr class="text-center">
                 <td><input type="checkbox" class="row-checkbox" value="${cls.id}"></td>
-                <td>${cls.index}</td>
-                <td>${cls.name}</td>
-                <td>${cls.grade === 10 ? "Khối 10" : cls.grade === 11 ? "Khối 11" : "Khối 12"}</td>
-                <td>${cls.student_count}</td>
-                <td>
+                <td style="vertical-align: middle;">${cls.index}</td>
+                <td style="vertical-align: middle;">${cls.name}</td>
+                <td style="vertical-align: middle;">${cls.class_advisor || "Chưa có"}</td>
+                <td style="vertical-align: middle;">${cls.specialized_class || "Không có"}</td>
+                <td style="vertical-align: middle;">${cls.subjects_with_teachers.join("<br>") || "Không có"}</td>
+                <td style="vertical-align: middle;">
                 <a href="javascript:void(0)" class="edit" onclick="enableEdit(this, ${cls.id})">
                     <i class="material-icons" data-toggle="tooltip" title="Sửa">&#xE254;</i>
                 </a>
@@ -113,7 +114,7 @@ async function saveEdit(el, classId) {
     console.log("Updated values:", updatedValues);
     if (!validateClassData(name, grade, student_count)) return;
 
-    const res = await fetch(`http://localhost:8000/classes/${classId}`, {
+    const res = await fetch(`http://localhost:8002/classes/${classId}`, {
         method: "PUT",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedValues)
@@ -217,7 +218,7 @@ async function addClass() {
     if (!validateClassData(name, grade, size)) return;
 
     try {
-        const response = await fetch("http://localhost:8000/classes", {
+        const response = await fetch("http://localhost:8002/classes", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -261,7 +262,7 @@ async function uploadExcel() {
     formData.append("file", file);
 
     try {
-        const res = await fetch("http://localhost:8000/classes/import", {
+        const res = await fetch("http://localhost:8002/classes/import", {
             method: "POST",
             body: formData,
         });
@@ -313,7 +314,7 @@ function validateClassData(name, grade, student_count) {
 async function deleteClassById(classId) {
 
     try {
-        const res = await fetch(`http://localhost:8000/classes/${classId}`, {
+        const res = await fetch(`http://localhost:8002/classes/${classId}`, {
             method: 'DELETE'
         });
         if (!res.ok) {
@@ -382,7 +383,7 @@ async function deleteSelectedClasses() {
     }
     console.log("selectedIds:", selectedIds)
     try {
-        const res = await fetch("http://localhost:8000/classes/delete-multiple", {
+        const res = await fetch("http://localhost:8002/classes/delete-multiple", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ class_ids: selectedIds })

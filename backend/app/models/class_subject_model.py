@@ -11,7 +11,4 @@ class_subject_association = Table(
     Column("subject_name", String,
            ForeignKey("subjects.name", ondelete="CASCADE", onupdate="CASCADE"),
            nullable=False),
-    # UniqueConstraint("class_name", "subject_code", name="uq_class_subject"),
-    # Index("ix_cs_class", "class_name"),
-    # Index("ix_cs_subject", "subject_code"),
 )

@@ -55,7 +55,7 @@ docker-compose up --build
 
 - Truy cập:
   - Frontend: http://localhost:3000
-  - Backend API: http://localhost:8000/docs (Swagger UI)
+  - Backend API: http://localhost:8002/docs (Swagger UI)
 
 ---
 

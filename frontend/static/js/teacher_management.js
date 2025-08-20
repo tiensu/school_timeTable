@@ -15,13 +15,71 @@ function handleFileSelected(input) {
     }
 }
 
+function formatSlot(slotStr) {
+    // slotStr dạng: "Saturday-morning-1"
+    const days = {
+        "Monday": "Thứ 2",
+        "Tuesday": "Thứ 3",
+        "Wednesday": "Thứ 4",
+        "Thursday": "Thứ 5",
+        "Friday": "Thứ 6",
+        "Saturday": "Thứ 7",
+        "Sunday": "Chủ nhật"
+    };
+    const sessions = {
+        "morning": "sáng",
+        "afternoon": "chiều"
+    };
+    const [day, session, period] = slotStr.split("-");
+    return `Tiết ${period}, ${sessions[session] || session} ${days[day] || day}`;
+}
+
+// Hàm gom slot đủ 5 tiết thành 1 dòng
+function formatSlotsDisplay(slots) {
+    // Gom các slot theo ngày/buổi
+    const slotMap = {};
+    slots.forEach(slotStr => {
+        const [day, session, period] = slotStr.split("-");
+        const key = `${day}-${session}`;
+        if (!slotMap[key]) slotMap[key] = [];
+        slotMap[key].push(period);
+    });
+
+    const days = {
+        "Monday": "Thứ 2",
+        "Tuesday": "Thứ 3",
+        "Wednesday": "Thứ 4",
+        "Thursday": "Thứ 5",
+        "Friday": "Thứ 6",
+        "Saturday": "Thứ 7",
+        "Sunday": "Chủ nhật"
+    };
+    const sessions = {
+        "morning": "Sáng",
+        "afternoon": "Chiều"
+    };
+
+    const result = [];
+    for (const key in slotMap) {
+        const [day, session] = key.split("-");
+        if (slotMap[key].length === 5) {
+            result.push(`${sessions[session] || session} ${days[day] || day}`);
+        } else {
+            slotMap[key].forEach(period => {
+                result.push(`Tiết ${period}, ${sessions[session] || session} ${days[day] || day}`);
+            });
+        }
+    }
+    return result;
+}
+
 async function fetchTeachers(page = 1) {
     currentPage = page;
     const skip = (page - 1) * pageSize;
     const searchParam = encodeURIComponent(currentSearch);
 
     try {
-        const res = await fetch(`http://localhost:8000/teachers?skip=${skip}&limit=${pageSize}&search=${searchParam}`);
+        const res = await fetch(`http://localhost:8002/teachers?skip=${skip}&limit=${pageSize}&search=${searchParam}`);
         const result = await res.json();
         const data = result.data;
         console.log("Fetched teachers:", data);
@@ -36,17 +94,18 @@ async function fetchTeachers(page = 1) {
             // console.log("cls.unavailable_slots: ", cls.unavailable_slots);
             table.innerHTML += `
             <tr class="text-center">
-                <td><input type="checkbox" class="row-checkbox" value="${cls.id}"></td>
-                <td>${cls.index}</td>
-                <td>${cls.code}</td>
-                <td>${cls.name}</td>
-                <td>${cls.subjects.join(", ")}</td>
-                <td>${cls.max_weekly_lessons}</td>
-                <td>${cls.available_morning ? "Có" : "Không"}</td>
-                <td>${cls.available_afternoon ? "Có" : "Không"}</td>
-                <td>${cls.unavailable_slots.join(", ")}</td>
-                <td>${cls.status === "active" ? "Đang dạy" : "Tạm dừng"}</td>
-                <td>
+                <td style="vertical-align: middle;"><input type="checkbox" class="row-checkbox" value="${cls.id}"></td>
+                <td style="vertical-align: middle;">${cls.index}</td>
+                <td style="vertical-align: middle;">${cls.code.substring(10)}</td>
+                <td style="vertical-align: middle;">${cls.name}</td>
+                <td style="vertical-align: middle;">${cls.class_advisor}</td>
+                <td style="vertical-align: middle;">${cls.subj_class.join("<br>")}</td>
+                <td style="vertical-align: middle;">${cls.max_weekly_lessons}</td>
+                <td style="vertical-align: middle;">${cls.max_weekly_x > 0? cls.max_weekly_x : ""}</td>
+                <td style="white-space: pre-line; vertical-align: middle;">${
+                    formatSlotsDisplay(cls.unavailable_slots).join("<br>")
+                }</td>
+                <td style="vertical-align: middle;">
                 <a href="javascript:void(0)" class="edit" onclick="enableEdit(this)">
                     <i class="material-icons" data-toggle="tooltip" title="Sửa">&#xE254;</i>
                 </a>
@@ -86,7 +145,7 @@ async function enableEdit(el) {
     const row = el.closest("tr");
     const editableIndexes = [2, 3, 4, 5, 6, 7, 8, 9]; // Các cột có thể chỉnh sửa
     // Get subjects list from backend
-    const subjectsRes = await fetch("http://localhost:8000/subjects/names");
+    const subjectsRes = await fetch("http://localhost:8002/subjects/names");
     const subjectsResult = await subjectsRes.json();
     const subjectsName = subjectsResult.subject_names;
     row.querySelectorAll("td").forEach((td, index) => {
@@ -197,7 +256,7 @@ async function saveEdit(el, teacherCode) {
     console.log("Updated values:", updatedValues);
     if (!validateTeacherData(new_code, name, subjects)) return;
 
-    const res = await fetch(`http://localhost:8000/teachers/${teacherCode}`, {
+    const res = await fetch(`http://localhost:8002/teachers/${teacherCode}`, {
         method: "PUT",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedValues)
@@ -356,7 +415,7 @@ async function addTeacher() {
     if (!validateTeacherData(teacherCode, name, subjects, phone, email, dob, address)) return;
 
     try {
-        const response = await fetch("http://localhost:8000/teachers", {
+        const response = await fetch("http://localhost:8002/teachers", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -395,7 +454,7 @@ async function uploadExcel() {
     formData.append("file", file);
 
     try {
-        const res = await fetch("http://localhost:8000/teachers/import", {
+        const res = await fetch("http://localhost:8002/teachers/import", {
             method: "POST",
             body: formData,
         });
@@ -460,7 +519,7 @@ function validateTeacherData(code, name, subjects) {
 async function deleteTeacherById(teacherId) {
 
     try {
-        const res = await fetch(`http://localhost:8000/teachers/${teacherId}`, {
+        const res = await fetch(`http://localhost:8002/teachers/${teacherId}`, {
             method: 'DELETE'
         });
         if (!res.ok) {
@@ -530,7 +589,7 @@ async function deleteSelectedTeachers() {
     }
     console.log("selectedIds:", selectedIds)
     try {
-        const res = await fetch("http://localhost:8000/teachers/delete-multiple", {
+        const res = await fetch("http://localhost:8002/teachers/delete-multiple", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ teacher_ids: selectedIds })
@@ -586,7 +645,7 @@ $(document).ready(function () {
 
 // Tải danh sách môn học khi trang được tải để hiển thị trong select box
 $(document).ready(function () {
-    fetch("http://localhost:8000/subjects/names")
+    fetch("http://localhost:8002/subjects/names")
         .then(response => response.json())
         .then(data => {
             const subjectNames = data.subject_names; // backend trả về: { subject_names: [...] }

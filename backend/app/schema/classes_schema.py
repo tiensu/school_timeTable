@@ -5,8 +5,7 @@ from typing import Optional
 # ===== CLASSES =====
 class ClassBase(BaseModel):
     name: str
-    grade: int
-    student_count: int
+    specialized_class: str
 
 class ClassCreate(BaseModel):
     name: str = Field(..., examples=["10A1"])

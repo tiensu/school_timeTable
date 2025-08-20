@@ -9,6 +9,9 @@ import io
 import pandas as pd
 from app.models.model import SessionLocal
 from app.models.classes_model import Class
+from app.models.subjects_model import Subject
+from app.models.teachers_model import Teacher
+from app.models.class_subject_teacher_model import ClassSubjectTeacher
 from app.schema import classes_schema
 
 router = APIRouter()
@@ -49,25 +52,32 @@ async def import_classes(file: UploadFile = File(...), db: Session = Depends(get
     imported_count = 0
     duplicated = []
 
-    for _, row in df.iterrows():
+    for idx, row in df.iterrows():
         try:
             name = str(row[0]).strip()           # Cột A
-            grade = int(row[1])                  # Cột B
-            student_count = int(row[2])          # Cột C
-            # logger.info(f'Processing class: {name}, Grade: {grade}, Students: {student_count}')
-
+            specialized_class = str(row[2]).strip()  # Cột B
             # Kiểm tra lớp đã tồn tại
             existing = db.query(Class).filter(Class.name == name).first()
             if existing:
                 duplicated.append(name)
                 continue
 
+            # subject_codes = str(row[3]).split(",") if pd.notna(row[3]) else []
+            subject_codes = [code.strip() for code in str(row[1]).split(",")] if pd.notna(row[1]) else []
+            # logger.info(f"Processing class {name} with subjects: {subject_codes}")
+            subjects = db.query(Subject).filter(Subject.code.in_(subject_codes)).all()
+            logger.info(f"Found subjects for class {name}: {[sub.name for sub in subjects]}")
             # Thêm lớp mới
-            class_obj = Class(name=name, grade=grade, student_count=student_count)
+            class_obj = Class(
+                name=name, 
+                specialized_class=specialized_class,
+                subjects=subjects
+                )
             db.add(class_obj)
             imported_count += 1
         except Exception as e:
-            duplicated.append(f"{row[0]} (Lỗi: {str(e)})")
+            duplicated.append(f"Row {idx+1} (Lỗi: {str(e)})")
+            logger.error(f"Error processing row {idx+1}: {e}")
 
     db.commit()
 
@@ -86,15 +96,31 @@ def get_classes(skip: int = 0, limit: int = 10, search: str = ""):
         query = query.filter(Class.name.ilike(f"%{search}%"))
     total = query.count()
     classes = query.offset(skip).limit(limit).all()
+    result = []
+    for i, cls in enumerate(classes):
+        # logger.info(f'Class {cls.name} - {cls.specialized_class} found with ID {cls.id}')
+        advisor = session.query(Teacher).filter(Teacher.class_advisor == cls.name).first()
+        advisor_info = None
+        if advisor:
+            advisor_info = advisor.name
+        # Lấy danh sách môn học kèm giáo viên dạy môn đó cho lớp này
+        subject_teachers = session.query(ClassSubjectTeacher).filter(
+            ClassSubjectTeacher.class_name == cls.name
+        ).all()
+        subjects_with_teachers = []
+        for st in subject_teachers:
+            subjects = session.query(Subject).filter(Subject.code == st.subject_code).first()
+            teachers = session.query(Teacher).filter(Teacher.code == st.teacher_code).first()
+            subjects_with_teachers.append(f"{subjects.name}-{teachers.name}")
+        result.append({
+            **classes_schema.ClassRead.from_orm(cls).dict(),
+            "index": skip + i + 1,
+            "class_advisor": advisor_info,
+            "subjects_with_teachers": subjects_with_teachers
+        })
     session.close()
     return {
-        "data": [
-            {
-                **classes_schema.ClassRead.from_orm(cls).dict(),
-                "index": skip + i + 1  # STT thực tế
-            }
-            for i, cls in enumerate(classes)
-        ],
+        "data": result,
         "total": total
     }
 

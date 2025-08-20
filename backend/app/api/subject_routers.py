@@ -9,6 +9,9 @@ import io
 import pandas as pd
 from app.models.model import SessionLocal
 from app.models.subjects_model import Subject
+from app.models.classes_model import Class
+from app.models.teachers_model import Teacher
+from app.models.class_subject_teacher_model import ClassSubjectTeacher
 from app.schema import subjects_schema
 
 router = APIRouter()
@@ -59,16 +62,7 @@ async def import_subjects(file: UploadFile = File(...), db: Session = Depends(ge
         try:
             name = str(row[0]).strip() if pd.notna(row[0]) else None
             code = str(row[1]).strip() if pd.notna(row[1]) else None
-            number_of_periods_per_week = int(row[2]) if pd.notna(row[2]) else None
-            subject_group = str(row[3]).strip() if pd.notna(row[3]) else None
-            required = str(row[4]).strip() == "Có" if pd.notna(
-                row[4]) else False
-            exam_required = str(row[5]).strip(
-            ) == "Có" if pd.notna(row[5]) else False
-            description = str(row[6]).strip() if len(
-                row) > 6 and pd.notna(row[6]) else None
-            status = str(row[7]).strip() if len(
-                row) > 7 and pd.notna(row[7]) else "active"
+            lesson_per_week = int(row[2]) if pd.notna(row[2]) else None
 
             if not name or not code:
                 raise ValueError("Thiếu tên hoặc mã môn học")
@@ -81,18 +75,14 @@ async def import_subjects(file: UploadFile = File(...), db: Session = Depends(ge
             subject_obj = Subject(
                 name=name,
                 code=code,
-                required=required,
-                num_periods_per_week=number_of_periods_per_week,
-                subject_group=subject_group,
-                exam_required=exam_required,
-                description=description,
-                status=status
+                lesson_per_week=lesson_per_week,
             )
             db.add(subject_obj)
             imported_count += 1
 
         except Exception as e:
-            errors.append(f"Dòng {idx+2} ({row[0]}): {str(e)}")
+            errors.append(f"Dòng {idx+1} ({row[0]}): {str(e)}")
+            logger.error(f"Error processing row {idx+1}: {e}")
 
     db.commit()
     return {
@@ -127,15 +117,26 @@ def get_subjects(skip: int = 0, limit: int = 10, search: str = ""):
         query = query.filter(Subject.name.ilike(f"%{search}%"))
     total = query.count()
     subjects = query.offset(skip).limit(limit).all()
+    result = []
+    for i, sub in enumerate(subjects):
+        # Lấy danh sách giáo viên dạy môn này (theo từng lớp)
+        subject_teachers = session.query(ClassSubjectTeacher).filter(
+            ClassSubjectTeacher.subject_code == sub.code
+        ).all()
+        teachers_name = []
+        for st in subject_teachers:
+            # subjects = session.query(Subject).filter(Subject.code == st.subject_code).first()
+            teachers = session.query(Teacher).filter(Teacher.code == st.teacher_code).first()
+            teachers_name.append(teachers.name)
+        teachers_name = list(set(teachers_name))  # loại bỏ trùng lặp
+        result.append({
+            **subjects_schema.SubjectRead.from_orm(sub).dict(),
+            "index": skip + i + 1,
+            "teachers_name": teachers_name  # danh sách mã giáo viên dạy môn này
+        })
     session.close()
     return {
-        "data": [
-            {
-                **subjects_schema.SubjectRead.from_orm(sub).dict(),
-                "index": skip + i + 1  # STT thực tế
-            }
-            for i, sub in enumerate(subjects)
-        ],
+        "data": result,
         "total": total
     }
 

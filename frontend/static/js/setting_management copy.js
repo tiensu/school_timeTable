@@ -1,6 +1,6 @@
 // frontend/static/js/timetable_slots.js
 document.addEventListener("DOMContentLoaded", () => {
-  const API = "http://localhost:8000/api/timetable-slots";
+  const API = "http://localhost:8002/api/timetable-slots";
   const API_CFG = `${API}/config`;
 
   const $ = (sel) => document.querySelector(sel);

@@ -13,7 +13,7 @@ SessionLocal = sessionmaker(bind=engine)
 db = SessionLocal()
 
 # === Đọc Excel ===
-df = pd.read_excel("sample_data/classes_template.xlsx")
+df = pd.read_excel("sample_data/timetable_slots_information.xlsx")
 
 # === Import từng lớp ===
 created = 0
