@@ -76,17 +76,6 @@ def parse_pairs(raw: str | List[str]) -> List[Tuple[str, str]]:
             pairs.append((m.group(1), m.group(2)))
     return pairs
 
-def to_int(val, default=17) -> int:
-    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip()=="":
-        return default
-    try:
-        return int(val)
-    except Exception:
-        try:
-            return int(float(val))
-        except Exception:
-            return default
-
 def get_slot_by_label(label: str, db: Session = Depends(get_db)):
     try:
         d, sess, per = label.split("-")
@@ -119,17 +108,17 @@ async def import_teachers(file: UploadFile = File(...), db: Session = Depends(ge
                 logger.warning(f"Dòng {index+1} không có mã hoặc tên giáo viên.")
                 raise ValueError("Thiếu mã hoặc tên giáo viên")
 
-            max_weekly_lessons = to_int(row[2], default=17)
+            max_weekly_lessons = int(row[2]) if pd.notna(row[2]) else 17
             # logger.info(f"Max weekly lessons for {name} (code={code}): {max_weekly_lessons}")
-            max_weekly_x = to_int(row[3] if pd.notna(row[3]) else None)
-            # logger.info(f"Max weekly x for {name} (code={code}): {max_weekly_x}")
+            max_weekly_x = int(row[3]) if pd.notna(row[3]) else None
+            # logger.info(f"Max weekly x for {name}: {max_weekly_x}")
             slot_labels = str(row[4]).split(",") if pd.notna(row[4]) else []
             # logger.info(f"Slot labels for {name} (code={code}): {slot_labels}")
             assignments_raw = str(row[5]).strip() if pd.notna(row[5]) else ""
             # logger.info(f"Assignments for {name} (code={code}): {assignments_raw}")
             class_advisor = str(row[6]).strip() if pd.notna(row[6]) else ""
             # logger.info(f"Class advisor for {name} (code={code}): {class_advisor}")
-            
+
             # Trùng code -> skip
             existing = db.query(Teacher).filter(Teacher.code == code).first()
             if existing:
@@ -214,6 +203,7 @@ async def import_teachers(file: UploadFile = File(...), db: Session = Depends(ge
                 # logger.warning(f"Lớp không tồn tại: {', '.join(sorted(set(unknown_classes)))}")
             if warn:
                 error_lst.append(f"Dòng {index+1} (code={code}): " + " | ".join(warn))
+
         except Exception as e:
             logger.error(f"Lỗi import tại dòng {index+1}")
             error_lst.append(f"Dòng {index+1} ({code if 'code' in locals() else 'N/A'}) - Lỗi: {e}")

@@ -32,9 +32,7 @@ def list_classes(db: Session = Depends(get_db)):
     rows = db.query(Class).order_by(Class.name.asc()).all()
     return [
         {
-            "name": c.name,
-            "grade": c.grade,
-            "student_count": c.student_count,
+            "name": c.name
         }
         for c in rows
     ]

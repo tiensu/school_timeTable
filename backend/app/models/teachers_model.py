@@ -13,6 +13,14 @@ class Teacher(Base):
     class_advisor = Column(String)  # Giáo viên chủ nhiệm
     max_weekly_lessons = Column(Integer, default=17)       # Số tiết tối đa/tuần
     max_weekly_x = Column(Integer, default=0)         # Số tiết tối đa/tuần cho môn X
+    subjects = relationship(
+        "Subject",
+        secondary="class_subject_teacher",
+        primaryjoin="Teacher.code==ClassSubjectTeacher.teacher_code",
+        secondaryjoin="Subject.code==ClassSubjectTeacher.subject_code",
+        viewonly=True,
+        lazy="selectin"
+    )
     unavailable_slots = relationship(
         "TimetableSlot", 
         secondary=teacher_unavailable_slot_association, 
