@@ -26,4 +26,3 @@ class Teacher(Base):
         secondary=teacher_unavailable_slot_association, 
         backref="unavailable_teachers"
     )
-

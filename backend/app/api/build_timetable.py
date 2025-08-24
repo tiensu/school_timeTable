@@ -546,7 +546,7 @@ def class_subject_balance_report(data, time_limit=15.0):
 
     return deficits_cs  # dict[(class_name, subject_code)] = missing
 
-def main():
+def gen_timetable():
     db = SessionLocal()
     try:
         Base.metadata.create_all(bind=engine)
@@ -568,4 +568,4 @@ def main():
         db.close()
 
 if __name__ == "__main__":
-    main()
+    gen_timetable()

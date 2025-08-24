@@ -109,7 +109,7 @@ async def import_teachers(file: UploadFile = File(...), db: Session = Depends(ge
                 raise ValueError("Thiếu mã hoặc tên giáo viên")
 
             max_weekly_lessons = int(row[2]) if pd.notna(row[2]) else 17
-            # logger.info(f"Max weekly lessons for {name} (code={code}): {max_weekly_lessons}")
+            logger.info(f"Max weekly lessons for {name} (code={code}): {max_weekly_lessons}")
             max_weekly_x = int(row[3]) if pd.notna(row[3]) else None
             # logger.info(f"Max weekly x for {name}: {max_weekly_x}")
             slot_labels = str(row[4]).split(",") if pd.notna(row[4]) else []
@@ -202,10 +202,10 @@ async def import_teachers(file: UploadFile = File(...), db: Session = Depends(ge
                 warn.append(f"Lớp không tồn tại: {', '.join(sorted(set(unknown_classes)))}")
                 # logger.warning(f"Lớp không tồn tại: {', '.join(sorted(set(unknown_classes)))}")
             if warn:
-                error_lst.append(f"Dòng {index+1} (code={code}): " + " | ".join(warn))
+                error_lst.append(f"Dòng {index} (code={code}): " + " | ".join(warn))
 
         except Exception as e:
-            logger.error(f"Lỗi import tại dòng {index+1}")
+            logger.error(f"Lỗi import tại dòng {index}: {e}")
             error_lst.append(f"Dòng {index+1} ({code if 'code' in locals() else 'N/A'}) - Lỗi: {e}")
 
     db.commit()

@@ -18,6 +18,7 @@ from app.models.classes_model import Class
 from app.models.timetable_model import Timetable
 from app.models.timetable_slot_model import TimetableSlot
 from app.models.class_subject_teacher_model import ClassSubjectTeacher
+from app.models.teacher_x_slot_model import Teacher_X_Slot
 
 DAY_ORDER = {"Monday": 1, "Tuesday": 2, "Wednesday": 3, "Thursday": 4, "Friday": 5, "Saturday": 6}
 
@@ -257,14 +258,14 @@ def build_and_solve(data):
                     if (l.name, s.code, t.id, k.id) in X) <= 1
             )
 
-    # (3) GV không trùng slot
+    # (3) GV không trùng slot: mỗi giáo viên chỉ được dạy tối đa 1 lớp/môn trong cùng một slot
     for t in teachers:
         for k in slots:
-            model.Add(
-                sum(X[(l.name, s_code, t.id, k.id)]
-                    for l in classes for s_code in subjects
-                    if (l.name, s_code, t.id, k.id) in X) <= 1
-            )
+            expr = [X[(l.name, s.code, t.id, k.id)]
+                    for l in classes for s in subjects
+                    if (l.name, s.code, t.id, k.id) in X]
+            if expr:
+                model.Add(sum(expr) <= 1)
 
     # (5) Giới hạn tổng số tiết/tuần của GV (không dùng max_weekly_x)
     if not DISABLE_CAP:
@@ -387,6 +388,7 @@ def build_and_solve(data):
 
     # Xuất kết quả (class_name, subject_code, teacher_code, slot_id)
     result = []
+    direct_x_assignments = []
     for (l_name, s_code, t_id, k_id), var in X.items():
         if solver.Value(var) == 1:
             result.append((l_name, s_code, teachers_by_id[t_id].code, k_id))
@@ -400,22 +402,42 @@ def build_and_solve(data):
             key = (t.id, k.id)
             if key in DirectX and solver.Value(DirectX[key]) == 1:
                 print(f"Slot {k.day_of_week} - Tiết {k.period}: {t.name} (Trực X)")
+                direct_x_assignments.append((t.code, k.id))
                 break
 
-    return result
+    # Kiểm tra giáo viên bị trùng slot (dạy nhiều lớp trong cùng một tiết)
+    from collections import defaultdict
+    slot_teacher_map = defaultdict(list)
+    for (l_name, s_code, t_id, k_id), var in X.items():
+        if solver.Value(var) == 1:
+            slot_teacher_map[(t_id, k_id)].append((l_name, s_code))
+    print("\n---- Kiểm tra giáo viên bị trùng slot ----")
+    for (t_id, k_id), assigns in slot_teacher_map.items():
+        if len(assigns) > 1:
+            teacher = teachers_by_id[t_id]
+            print(f"\033[91mGiáo viên {teacher.code} ({teacher.name}) dạy nhiều lớp/môn tại slot id={k_id}: {assigns}\033[0m")
 
-def write_timetable(db, assignments, wipe_existing=True):
-    """Ghi vào bảng timetables theo class_name."""
+    return result, direct_x_assignments
+
+def write_timetable(db, assignments, direct_x_assignments, wipe_existing=True):
+    """Ghi vào bảng timetables và teacher_x_slots."""
     if wipe_existing:
         db.query(Timetable).delete()
+        db.query(Teacher_X_Slot).delete()
         db.commit()
     rows = [
         Timetable(class_name=l_name, subject_code=s_code, teacher_code=t_code, slot_id=k_id)
         for (l_name, s_code, t_code, k_id) in assignments
     ]
     db.add_all(rows)
+    # Lưu giáo viên trực X
+    direct_x_rows = [
+        Teacher_X_Slot(teacher_code=t_code, slot_id=k_id)
+        for (t_code, k_id) in direct_x_assignments
+    ]
+    db.add_all(direct_x_rows)
     db.commit()
-    return len(rows)
+    return len(rows), len(direct_x_rows)
 
 # =========================
 #  Báo cáo & chẩn đoán
@@ -460,6 +482,34 @@ def sanity_report(data):
         cap = Cap[t.id]
         avail_slots = sum(1 for k in slots if Avail.get((t.id, k.id), False))
         print(f"[Teacher {t.code}] cap={cap}, avail_slots={avail_slots}")
+    
+    print("\n---- KIỂM TRA CHI TIẾT DỮ LIỆU ĐẦU VÀO ----")
+    # 1. Lớp-môn không có giáo viên nào đủ điều kiện dạy
+    for c in classes:
+        for s in subjects:
+            need = R_name.get((c.name, s.code), 0)
+            if need <= 0:
+                continue
+            teachers_ok = [t for t in teachers if TeachOK.get((t.id, s.code, c.name), False)]
+            if not teachers_ok:
+                print(f"\033[91mLớp {c.name} - Môn {s.code} không có giáo viên nào đủ điều kiện dạy!\033[0m")
+
+    # 2. Giáo viên có số slot rảnh quá ít so với quota
+    for t in teachers:
+        cap = Cap[t.id]
+        avail_slots = sum(1 for k in slots if Avail.get((t.id, k.id), False))
+        if avail_slots < cap:
+            print(f"\033[93mGiáo viên {t.code} ({t.name}) quota={cap}, slot rảnh={avail_slots} < quota!\033[0m")
+
+    # 3. Lớp-môn có số tiết cần dạy vượt quá số slot
+    for c in classes:
+        for s in subjects:
+            need = R_name.get((c.name, s.code), 0)
+            if need <= 0:
+                continue
+            total_slots = len(slots)
+            if need > total_slots:
+                print(f"\033[91mLớp {c.name} - Môn {s.code} cần {need} tiết, nhưng chỉ có {total_slots} slot!\033[0m")
 
 def class_subject_balance_report(data, time_limit=15.0):
     """
@@ -560,10 +610,10 @@ def main():
             print("\n❌ Thiếu giáo viên. Không tạo thời khóa biểu.")
             print("   Vui lòng bổ sung GV/quota cho các môn/cặp lớp–môn in màu đỏ ở trên.")
             return
-        # Đủ/thừa tất cả môn → mới tạo TKB
-        assignments = build_and_solve(data)
-        n = write_timetable(db, assignments, wipe_existing=True)
+        assignments, direct_x_assignments = build_and_solve(data)
+        n, n_x = write_timetable(db, assignments, direct_x_assignments, wipe_existing=True)
         print(f"✅ Đã ghi {n} dòng vào bảng timetables.")
+        print(f"✅ Đã ghi {n_x} dòng vào bảng teacher_x_slots.")
     finally:
         db.close()
 

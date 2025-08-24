@@ -107,6 +107,26 @@ function shortTeacherLabel(it) {
 
 
 // Viết tắt môn: lấy chữ cái đầu của các từ, từ cuối giữ nguyên (viết hoa chữ cái đầu), nối không khoảng trắng.
+// Quy tắc tên môn học cho chế độ compact:
+// - Nếu có 2 từ, giữ nguyên.
+// - Nếu có nhiều hơn 2 từ, lấy 2 chữ cái đầu của các từ trước (viết hoa) + 2 từ cuối.
+// - Bỏ đi con số trong tên môn (10, 11, 12)
+function abbrSubjectNameCompact(it) {
+    let raw = (it.subject_name || "").trim();
+    // Bỏ số cuối tên môn
+    raw = raw.replace(/\b(10|11|12)\b/g, "").replace(/\s+/g, " ").trim();
+    const parts = raw.split(/\s+/).filter(Boolean);
+    if (parts.length === 2) {
+        return parts.join(" ");
+    }
+    if (parts.length > 2) {
+        const initials = parts.slice(0, -2).map(w => w[0].toUpperCase()).join("");
+        const lastTwo = parts.slice(-2).join(" ");
+        return initials + lastTwo;
+    }
+    // Nếu chỉ 1 từ hoặc không có tên, fallback về tên gốc
+    return raw || it.subject_code || "";
+}
 function cap(s) { return s ? (s[0].toUpperCase() + s.slice(1)) : ""; }
 
 function abbrSubjectName(it) {
@@ -174,54 +194,54 @@ function renderGridCompactByGrade() {
     let htmlAll = "";
     const orderedGrades = Array.from(byGrade.keys()).sort(); // chỉ có "12"
 
-    for (const grade of orderedGrades) {
-        const classList = byGrade.get(grade);
-        if (!classList || !classList.length) continue;
+        for (const grade of orderedGrades) {
+                const classList = byGrade.get(grade);
+                if (!classList || !classList.length) continue;
 
-        // THEAD: Thứ | Tiết | ...các lớp
-        const thead = `
-      <thead>
-        <tr>
-          <th class="text-center">Thứ</th>
-          <th class="text-center">Tiết</th>
-          ${classList.map(cn => `<th class="text-center font-semibold">${cn}</th>`).join("")}
-        </tr>
-      </thead>`;
+                // THEAD: Thứ | Tiết | ...các lớp
+                const thead = `
+            <thead>
+                <tr>
+                    <th class="border text-center align-middle" style="width:40px">THỨ</th>
+                    <th class="border text-center align-middle" style="width:40px">TIẾT</th>
+                    ${classList.map(cn => `<th class="border text-center font-semibold" style="min-width:80px">${cn}</th>`).join("")}
+                </tr>
+            </thead>`;
 
-        let tbody = "";
-        for (const day of DAYS) {
-            const rfd = rowsForDay();
-            rfd.forEach((r, idx) => {
-                tbody += `<tr>`;
-                if (idx === 0) {
-                    const thuNum = { Monday: "2", Tuesday: "3", Wednesday: "4", Thursday: "5", Friday: "6", Saturday: "7"}[day] || day;
-                    tbody += `<td rowspan="${rfd.length}" class="text-center align-middle"><strong>${thuNum}</strong></td>`;
+                let tbody = "";
+                for (const day of DAYS) {
+                        const rfd = rowsForDay();
+                        rfd.forEach((r, idx) => {
+                                tbody += `<tr>`;
+                                if (idx === 0) {
+                                        const thuNum = { Monday: "2", Tuesday: "3", Wednesday: "4", Thursday: "5", Friday: "6", Saturday: "7"}[day] || day;
+                                        tbody += `<td class="border text-center align-middle" rowspan="${rfd.length}"><strong>${thuNum}</strong></td>`;
+                                }
+                                tbody += `<td class="border text-center">${r.label}</td>`;
+                                for (const cls of classList) {
+                                        const k = key4(cls, day, r.session, r.period);
+                                        const arr = store.get(k) || [];
+                                        // Hiển thị tên môn học theo quy tắc compact
+                                        const lines = arr.map(a => abbrSubjectNameCompact(a));
+                                        tbody += `<td class="border text-center">${lines.join("<br>") || ""}</td>`;
+                                }
+                                tbody += `</tr>`;
+                        });
                 }
-                tbody += `<td class="text-center">${r.label}</td>`;
-                for (const cls of classList) {
-                    const k = key4(cls, day, r.session, r.period);
-                    const arr = store.get(k) || [];
-                    // Sử dụng viết tắt môn và giáo viên cho compact
-                    const lines = arr.map(a => `${abbrSubjectCodeCompact(a)} – ${shortTeacherLabelCompact(a)}`);
-                    tbody += `<td class="text-sm">${lines.join("<br>") || ""}</td>`;
-                }
-                tbody += `</tr>`;
-            });
+
+                htmlAll += `
+                        <h5 class="mt-4 mb-2 font-semibold">Khối ${grade}</h5>
+                        <div class="border rounded-2xl overflow-auto w-full max-w-7xl mx-auto px-4 sm:px-6">
+                            <table class="tkb-compact-table w-full" style="border-collapse:collapse;width:100%;font-size:13px;table-layout:fixed;">
+                                ${thead}
+                                <tbody>${tbody}</tbody>
+                            </table>
+                        </div>
+                        <div class="page-break"></div>
+                    `;
         }
 
-        htmlAll += `
-      <h5 class="mt-4 mb-2 font-semibold">Khối ${grade}</h5>
-      <div class="border rounded-2xl overflow-auto">
-        <table class="tkb-compact-table">
-          ${thead}
-          <tbody>${tbody}</tbody>
-        </table>
-      </div>
-      <div class="page-break"></div>
-    `;
-    }
-
-    wrapper.innerHTML = htmlAll;
+        wrapper.innerHTML = htmlAll;
 }
 
 
@@ -361,7 +381,7 @@ function renderGrid() {
             for (const session of ["morning"]) { // chỉ hiển thị buổi sáng
                 for (let p = 1; p <= PERIODS_PER_SESSION; p++) {
                     bodyRows += `<tr>`;
-                    bodyRows += `<td class="sticky-left bg-white print-bg border-t px-3 py-2 text-sm text-slate-600">
+                    bodyRows += `<td class="sticky-left bg-white print-bg border-t px-3 py-2  text-slate-600">
                         <div class="font-medium">${SESSION_LABELS[session]}</div>
                         <div class="text-xs">Tiết ${p}</div>
                       </td>`;
@@ -374,7 +394,7 @@ function renderGrid() {
                         <div class="badge ${color} print-bg inline-block mb-1">
                           ${subjectLabel(ci.subject_code, ci.subject_name)}
                         </div>
-                        <div class="text-sm font-medium">${ci.teacher_name || ci.teacher_code}</div>
+                        <div class=" font-medium">${ci.teacher_name || ci.teacher_code}</div>
                       </div>`;
                         }).join("");
 
@@ -550,7 +570,7 @@ function renderGridCompactAllClasses() {
                 const k = key4(cn, day, row.session, row.period);
                 const arr = m.get(k) || [];
                 const lines = arr.map(a => `${shortSubjectLabel(a)} – ${shortTeacherLabel(a)}`);
-                tbody += `<td class="border-t px-2 py-1 text-sm">${lines.join("<br>") || ""}</td>`;
+                tbody += `<td class="border-t px-2 py-1 ">${lines.join("<br>") || ""}</td>`;
             }
             tbody += `</tr>`;
         });
@@ -559,7 +579,7 @@ function renderGridCompactAllClasses() {
     // Render
     wrapper.innerHTML = `
     <div class="border rounded-2xl overflow-hidden">
-      <table class="w-full border-separate text-sm" style="border-spacing:0">
+      <table class="w-full border-separate " style="border-spacing:0">
         ${thead}
         <tbody>${tbody}</tbody>
       </table>
