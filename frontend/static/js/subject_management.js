@@ -36,31 +36,17 @@ async function fetchSubjects(page = 1) {
         data.forEach(cls => {
             table.innerHTML += `
             <tr class="text-center">
-                <td><input type="checkbox" class="row-checkbox" value="${cls.id}"></td>
                 <td style="vertical-align: middle;">${cls.index}</td>
                 <td style="vertical-align: middle;">${cls.name}</td>
                 <td style="vertical-align: middle;">${cls.code}</td>
                 <td style="vertical-align: middle;">${cls.lesson_per_week}</td>
                 <td style="vertical-align: middle;">${cls.teachers_name.join("<br>") || "Không có"}</td>
-                <td style="vertical-align: middle;">
-                <a href="javascript:void(0)" class="edit" onclick="enableEdit(this, ${cls.id})">
-                    <i class="material-icons" data-toggle="tooltip" title="Sửa">&#xE254;</i>
-                </a>
-                <a href="javascript:void(0)" class="save" style="display: none;" onclick="saveEdit(this, ${cls.id})">
-                    <i class="material-icons" data-toggle="tooltip" title="Lưu">&#xE161;</i>
-                </a>
-                <a href="#" class="delete" onclick="showDeleteModal(${cls.id}, '${cls.name}')"><i class="material-icons" title="Delete">&#xE872;</i>
-                </a>
-                </td>
-
             </tr>
         `;
         });
 
         // render phân trang
         renderPagination(totalPages, currentPage);
-        
-        document.getElementById("selectAll").checked = false;
 
         // ✅ Cập nhật hint text
         const startEntry = skip + 1;
@@ -76,86 +62,6 @@ async function fetchSubjects(page = 1) {
         showToast("Lỗi khi tải danh sách môn học", "danger");
         console.error(err);
     }
-}
-
-function enableEdit(el, subjectId) {
-    const row = el.closest("tr");
-    const editableIndexes = [2, 3, 4, 5, 6, 7, 8, 9]; // Chỉ edit Name, Code, Number of Periods, Required, Subject Group, Exam Required, Description, Status
-    row.querySelectorAll("td").forEach((td, index) => {
-        if (index === 6 || index === 7) {
-            td.innerHTML = `<select class="form-control form-control-sm">
-                <option value="true" ${td.textContent.trim() === "Có" ? "selected" : ""}>Có</option>
-                <option value="false" ${td.textContent.trim() === "Không" ? "selected" : ""}>Không</option>
-            </select>`;
-        } else if (index === 9) {
-            td.innerHTML = `<select class="form-control form-control-sm">
-                <option value="active" ${td.textContent.trim() === "Đang dạy" ? "selected" : ""}>Đang dạy</option>
-                <option value="inactive" ${td.textContent.trim() === "Tạm dừng" ? "selected" : ""}>Tạm dừng</option>
-            </select>`;
-        } else if (editableIndexes.includes(index)) {
-            const value = td.textContent.trim();
-            td.innerHTML = `<input type="text" class="form-control form-control-sm" value="${value}">`;
-        }
-    });
-
-    row.querySelector(".edit").style.display = "none";
-    row.querySelector(".save").style.display = "inline-block";
-    row.querySelector(".delete").style.display = "none";
-}
-
-async function saveEdit(el, subjectId) {
-    const row = el.closest("tr");
-    const inputs = row.querySelectorAll("td input");
-    const selects = row.querySelectorAll("td select");
-    const name = inputs[1].value.trim();
-    const code = inputs[2].value.trim();
-    const num_periods_per_week = parseInt(inputs[3].value.trim());
-    const subject_group = inputs[4].value.trim() || null; // Có thể để trống
-    const required = selects[0].value.trim();
-    const exam_required = selects[1].value.trim();
-    const description = inputs[5].value.trim() || null; // Có thể để trống
-    const status = selects[2].value.trim(); // Mặc định là "active"
-    const updatedValues = {
-        name: name,
-        code: code,
-        num_periods_per_week: num_periods_per_week,
-        required: required,
-        subject_group: subject_group,
-        exam_required: exam_required,
-        description: description,
-        status: status
-    };
-    console.log("Updated values:", updatedValues);
-    if (!validateSubjectData(name, code, num_periods_per_week, required, subject_group, exam_required, description, status)) return;
-
-    const res = await fetch(`http://localhost:8002/subjects/${subjectId}`, {
-        method: "PUT",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedValues)
-    });
-    if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.detail || "Lỗi khi cập nhật thông tin môn học.");
-    }
-    const result = await res.json();
-    showToast(result.message || "Đã cập nhật môn học");
-
-    // Set lại từng cell bằng đúng giá trị bạn vừa dùng
-    // Quay lại hiển thị bình thường
-    row.querySelectorAll("td:not(:first-child):not(:last-child)").forEach((td, idx) => {
-        if (idx === 1) td.innerHTML = updatedValues.name;
-        if (idx === 2) td.innerHTML = updatedValues.code;
-        if (idx === 3) td.innerHTML = updatedValues.num_periods_per_week;
-        if (idx === 4) td.innerHTML = updatedValues.subject_group || "";
-        if (idx === 5) td.innerHTML = updatedValues.required === "true" ? "Có" : "Không";
-        if (idx === 6) td.innerHTML = updatedValues.exam_required === "true" ? "Có" : "Không";
-        if (idx === 7) td.innerHTML = updatedValues.description || "";
-        if (idx === 8) td.innerHTML = updatedValues.status === "active" ? "Đang dạy" : "Tạm dừng";
-    });
-
-    row.querySelector(".edit").style.display = "inline-block";
-    row.querySelector(".save").style.display = "none";
-    row.querySelector(".delete").style.display = "inline-block";
 }
 
 function renderPagination(totalPages, currentPage) {
@@ -229,59 +135,6 @@ function renderPagination(totalPages, currentPage) {
     container.appendChild(createPageButton("Next", currentPage + 1, false, currentPage === totalPages));
 }
 
-async function addSubject() {
-    const name = document.getElementById("subjectName").value.trim();
-    const code = document.getElementById("subjectCode").value.trim();
-    const num_periods_per_week = parseInt(document.getElementById("subjectPeriods").value.trim());
-    const required = document.getElementById("subjectRequired").value.trim();
-    const subject_group = document.getElementById("subjectGroup").value.trim() || null;
-    const exam_required = document.getElementById("subjectExam").value.trim();
-    const description = document.getElementById("subjectDescription").value.trim() || null;
-    const status = document.getElementById("subjectStatus").value.trim();
-    console.log("Adding subject with values:", {
-        name, code, num_periods_per_week, required, subject_group, exam_required, description, status
-    });
-
-    if (!validateSubjectData(name, code, num_periods_per_week, required, subject_group, exam_required, description, status)) return;
-
-    try {
-        const response = await fetch("http://localhost:8002/subjects", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                name: name,
-                code: code,
-                num_periods_per_week: num_periods_per_week,
-                required: required,
-                subject_group: subject_group,
-                exam_required: exam_required,
-                description: description,
-                status: status
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            showToast(error.detail || "Lỗi khi thêm môn học.", "danger");
-            return;
-        }
-
-        // Đóng modal (nếu dùng Bootstrap 3)
-        $("#addSubjectModal").modal("hide");
-
-        // Reset form
-        document.getElementById("subjectForm").reset();
-
-        // Refresh bảng
-        fetchSubjects();
-    } catch (err) {
-        console.error("❌ Thêm môn học thất bại:", err);
-        alert("Lỗi: " + err.message);
-    }
-}
-
 async function uploadExcel() {
     const fileInput = document.getElementById("excelFile");
     const file = fileInput.files[0];
@@ -332,69 +185,6 @@ function goToPage(page) {
     fetchSubjects();
 }
 
-function validateSubjectData(name, code, num_periods_per_week, required, subject_group, exam_required, description, status) {
-    if (!name || name.trim() === "") {
-        showToast("Tên môn học không được để trống", "danger");
-        return false;
-    }
-    if (!code || code.trim() === "") {
-        showToast("Mã môn học không được để trống", "danger");
-        return false;
-    }
-    if (isNaN(num_periods_per_week) || num_periods_per_week < 1) {
-        showToast("Số tiết trên tuần phải là số dương", "danger");
-        return false;
-    }
-    if (required === undefined) {
-        showToast("Trạng thái bắt buộc không được để trống", "danger");
-        return false;
-    }
-    if (!subject_group || subject_group.trim() === "") {
-        showToast("Nhóm môn học không được để trống", "danger");
-        return false;
-    }
-    if (exam_required === undefined) {
-        showToast("Trạng thái thi không được để trống", "danger");
-        return false;
-    }
-    if (!description || description.trim() === "") {
-        showToast("Mô tả không được để trống", "danger");
-        return false;
-    }
-    if (!status || status.trim() === "") {
-        showToast("Trạng thái không được để trống", "danger");
-        return false;
-    }
-    return true;
-}
-
-async function deleteSubjectById(subjectId) {
-
-    try {
-        const res = await fetch(`http://localhost:8002/subjects/${subjectId}`, {
-            method: 'DELETE'
-        });
-        if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.detail || "Lỗi khi xóa môn học.");
-        }
-        const result = await res.json();
-        // console.log("result: ", result)
-        showToast(result.message, "success");
-        fetchSubjects(currentPage); // reload lại bảng
-    } catch (err) {
-        console.error("❌ Xóa môn học thất bại:", err);
-        alert("Lỗi: " + err.message);
-    }
-}
-
-function showDeleteModal(subjectId, subjectName) {
-    document.getElementById("deleteSubjectId").value = subjectId;
-    document.getElementById("deleteMessage").textContent =
-        `Bạn có chắc chắn muốn xóa môn học "${subjectName}" không?`;
-    $("#deleteSingleModal").modal("show");
-}
-
 function showToast(message, type = "success") {
   const toast = document.createElement("div");
   toast.className = `toast-message bg-${type}`;
@@ -429,63 +219,12 @@ function showToast(message, type = "success") {
   }, 3000);
 }
 
-async function deleteSelectedSubjects() {
-    const selectedIds = Array.from(document.querySelectorAll('.row-checkbox:checked'))
-        .map(cb => parseInt(cb.value));
-
-    if (selectedIds.length === 0) {
-        // alert("Vui lòng chọn ít nhất 1 môn học để xóa.");
-        showToast("Vui lòng chọn ít nhất 1 môn học để xóa.", "danger")
-        return;
-    }
-    console.log("selectedIds:", selectedIds)
-    try {
-        const res = await fetch("http://localhost:8002/subjects/delete-multiple", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ subject_ids: selectedIds })
-        });
-
-        const result = await res.json();
-        // Đóng modal
-        $('#confirmDeleteModal').modal('hide');
-        showToast("Xóa môn học thành công.", "success");  // màu xanh
-
-        $("#selectAll").prop("checked", false);
-
-        fetchSubjects(currentPage);  // Refresh danh sách
-    } catch (err) {
-        showToast("Xảy ra lỗi khi xóa môn học.", "danger");   // màu đỏ
-    }
-}
-
 $(document).ready(function () {
-    $("#confirmDeleteBtn").click(function () {
-        deleteSelectedSubjects()
-    });
-
-    // Khi click vào checkbox "Chọn tất cả"
-    $("#selectAll").on("change", function () {
-        $(".row-checkbox").prop("checked", this.checked);
-    });
-
-    // Khi một checkbox dòng bị thay đổi
-    $(document).on("change", ".row-checkbox", function () {
-        const all = $(".row-checkbox").length;
-        const checked = $(".row-checkbox:checked").length;
-        $("#selectAll").prop("checked", all === checked);
-    });
 
     $("#searchInput").keyup(function () {
         const searchValue = $(this).val().trim();
         currentSearch = searchValue; // Cập nhật biến tìm kiếm
         fetchSubjects(1); // Tải lại trang đầu tiên với từ khóa tìm kiếm mới
-    });
-
-    $("#confirmDeleteSingleBtn").click(function () {
-        const subjectId = document.getElementById("deleteSubjectId").value;
-        deleteSubjectById(subjectId);
-        $("#deleteSingleModal").modal("hide");
     });
 
     $("#pageSizeSelector").click(function () {

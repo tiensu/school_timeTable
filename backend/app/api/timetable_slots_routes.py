@@ -1,6 +1,6 @@
 # app/routers/timetable_slots_routes.py
 from typing import List, Optional, Dict
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
 from pydantic import BaseModel, Field, validator
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -10,6 +10,8 @@ from app.models.timetable_model import Timetable
 from app.models.teacher_unavailable_slot_model import teacher_unavailable_slot_association
 from loguru import logger
 from sqlalchemy import delete
+import pandas as pd
+import io
 # from app.api.user_routes import require_admin
 
 # ========== API UTILS ==========
@@ -308,4 +310,50 @@ def config_set_day_periods(body: SetDayPeriodsReq, db: Session = Depends(get_db)
         "created": created,
         "kept": kept,
         "removed": removed
+    }
+
+@router.post("/import")
+async def import_subjects(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    contents = await file.read()
+    df = pd.read_excel(io.BytesIO(contents))
+
+    imported_count = 0
+    duplicated = []
+    errors = []
+
+    for idx, row in df.iterrows():
+        try:
+            day_of_week=row[0] if pd.notna(row[0]) else None,
+            session=row[1] if pd.notna(row[1]) else None,
+            period=int(row[2]) if pd.notna(row[2]) else None
+
+            if not day_of_week or not session:
+                raise ValueError("Thiếu ngày hoặc buổi học")
+
+            existing = db.query(TimetableSlot).filter(
+                TimetableSlot.day_of_week == day_of_week,
+                TimetableSlot.session == session,
+                TimetableSlot.period == period
+            ).first()
+            if existing:
+                duplicated.append(existing.name)
+                continue
+
+            slot = TimetableSlot(
+                day_of_week=day_of_week,
+                session=session,
+                period=period
+            )
+            db.add(slot)
+            imported_count += 1
+
+        except Exception as e:
+            errors.append(f"Dòng {idx} ({row[0]}): {str(e)}")
+            logger.error(f"Error processing row {idx}: {e}")
+
+    db.commit()
+    return {
+        "imported": imported_count,
+        "duplicated": duplicated,
+        "errors": errors
     }

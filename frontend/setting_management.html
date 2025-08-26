@@ -30,8 +30,26 @@
       </div>
       <!-- Tiêu đề trung tâm -->
       <div class="d-flex align-items-center flex-wrap">
-        <h3 class="mb-0 mr-4 font-weight-bold" style="font-size: 30px;"><i class="bi bi-sliders2-vertical mr-2"></i>Quản lý <span
-            class="text-info">Cấu hình</span></h3>
+        <h3 class="mb-0 mr-4 font-weight-bold" style="font-size: 30px;"><i class="bi bi-sliders2-vertical mr-2"></i>Quản
+          lý <span class="text-info">Cấu hình</span></h3>
+      </div>
+      <div class="d-flex align-items-center flex-wrap mr-2">
+        <!-- Nhập tên file (click được) -->
+        <div class="input-group input-group-sm" style="width: 240px;">
+          <div class="input-group-prepend">
+            <span class="input-group-text"><i class="fas fa-file-excel"></i></span>
+          </div>
+          <input type="text" class="form-control" id="fileName" placeholder="Chọn file excel..." readonly
+            onclick="document.getElementById('excelFile').click();" style="cursor: pointer;">
+        </div>
+
+        <!-- Input file (ẩn) -->
+        <input type="file" id="excelFile" style="display: none;" onchange="handleFileSelected(this)">
+
+        <!-- Nút Import -->
+        <button class="btn btn-info btn-sm ml-2" onclick="uploadExcel();">
+          <i class="fas fa-upload"></i> Import
+        </button>
       </div>
       <!-- Hiển thị tên và nút logout -->
       <div class="d-flex align-items-center gap-2">
@@ -65,15 +83,14 @@
     </div>
 
     <!-- Điều khiển cấu hình -->
-    <div class="bg-white rounded-2xl shadow p-4 mb-6">
+    <div class="bg-white rounded-2xl shadow p-4 mb-6" style="position: relative;">
       <h2 class="font-medium mb-3">Điều chỉnh cấu hình</h2>
-
       <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
         <!-- Thêm ngày -->
         <div class="flex items-end gap-2">
           <div>
             <label class="block text-sm mb-1">Thêm ngày</label>
-            <select id="cfg-add-day" class="border rounded-lg p-2">
+            <select id="cfg-add-day" class="border rounded-lg p-2" disabled>
               <option value="">-- chọn --</option>
               <option>Monday</option>
               <option>Tuesday</option>
@@ -83,45 +100,43 @@
               <option>Saturday</option>
             </select>
           </div>
-          <button id="btn-cfg-add-day" class="px-3 py-2 rounded bg-emerald-600 text-white">Thêm</button>
+          <button id="btn-cfg-add-day" class="px-3 py-2 rounded bg-emerald-600 text-white" disabled>Thêm</button>
         </div>
 
         <!-- Xóa ngày -->
         <div class="flex items-end gap-2">
           <div>
             <label class="block text-sm mb-1">Xóa ngày</label>
-            <select id="cfg-del-day" class="border rounded-lg p-2">
+            <select id="cfg-del-day" class="border rounded-lg p-2" disabled>
               <option value="">-- chọn --</option>
             </select>
           </div>
-          <button id="" class="px-3 py-2 rounded bg-rose-600 text-white" onclick="handleDeleteDay()">Xóa</button>
+          <button id="" class="px-3 py-2 rounded bg-rose-600 text-white" onclick="handleDeleteDay()" disabled>Xóa</button>
         </div>
 
         <!-- Thêm buổi -->
         <div class="flex items-end gap-2">
           <div>
             <label class="block text-sm mb-1">Thêm buổi</label>
-            <select id="cfg-add-session" class="border rounded-lg p-2">
+            <select id="cfg-add-session" class="border rounded-lg p-2" disabled>
               <option value="">-- chọn --</option>
               <option>morning</option>
               <option>afternoon</option>
               <option>evening</option>
             </select>
           </div>
-          <!-- <input id="cfg-add-session-periods" type="number" min="1" max="12" value="5"
-            class="border rounded-lg p-2 w-24" /> -->
-          <button id="btn-cfg-add-session" class="px-3 py-2 rounded bg-emerald-600 text-white">Thêm</button>
+          <button id="btn-cfg-add-session" class="px-3 py-2 rounded bg-emerald-600 text-white" disabled>Thêm</button>
         </div>
 
         <!-- Xóa buổi -->
         <div class="flex items-end gap-2">
           <div>
             <label class="block text-sm mb-1">Xóa buổi</label>
-            <select id="cfg-del-session" class="border rounded-lg p-2">
+            <select id="cfg-del-session" class="border rounded-lg p-2" disabled>
               <option value="">-- chọn --</option>
             </select>
           </div>
-          <button id="btn-cfg-del-session" class="px-3 py-2 rounded bg-rose-600 text-white">Xóa</button>
+          <button id="btn-cfg-del-session" class="px-3 py-2 rounded bg-rose-600 text-white" disabled>Xóa</button>
         </div>
       </div>
 
@@ -136,7 +151,7 @@
         <div class="flex flex-wrap items-end gap-3">
           <div>
             <label class="block text-sm mb-1">Ngày</label>
-            <select id="day-per-day" class="border rounded-lg p-2">
+            <select id="day-per-day" class="border rounded-lg p-2" disabled>
               <option value="">-- chọn --</option>
               <option>Monday</option>
               <option>Tuesday</option>
@@ -148,7 +163,7 @@
           </div>
           <div>
             <label class="block text-sm mb-1">Buổi</label>
-            <select id="session-per-day" class="border rounded-lg p-2">
+            <select id="session-per-day" class="border rounded-lg p-2" disabled>
               <option value="">-- chọn --</option>
               <option>morning</option>
               <option>afternoon</option>
@@ -159,19 +174,31 @@
             <div>
               <label class="block text-sm mb-1">Số tiết</label>
               <div class="flex items-center gap-2">
-                <button id="btn-day-minus" class="px-2 py-1 border rounded">−</button>
+                <button id="btn-day-minus" class="px-2 py-1 border rounded" disabled>−</button>
                 <input id="periods-per-day" type="number" min="0" max="12" value="0"
-                  class="border rounded p-2 w-24 text-center" />
-                <button id="btn-day-plus" class="px-2 py-1 border rounded">+</button>
+                  class="border rounded p-2 w-24 text-center" disabled />
+                <button id="btn-day-plus" class="px-2 py-1 border rounded" disabled>+</button>
               </div>
             </div>
-            <button id="btn-apply-per-day" class="px-4 py-2 rounded bg-slate-800 text-white">Áp dụng</button>
+            <button id="btn-apply-per-day" class="px-4 py-2 rounded bg-slate-800 text-white" disabled>Áp dụng</button>
           </div>
         </div>
       </div>
 
 
       <p id="cfg-msg" class="text-sm mt-2"></p>
+
+      <!-- Overlay che mờ -->
+      <div
+        style="
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(255,255,255,0.7);
+          z-index: 10;
+          border-radius: 16px;
+          cursor: not-allowed;
+        ">
+      </div>
     </div>
   </div>
 

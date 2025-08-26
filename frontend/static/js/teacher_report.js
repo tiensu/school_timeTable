@@ -42,7 +42,6 @@
         <td class="px-3 py-2">${item.total_periods}</td>
         <td class="px-3 py-2">${item.capacity ?? "—"}</td>
         <td class="px-3 py-2">${util}</td>
-        <td class="px-3 py-2 ${overloadClass}">${item.overload}</td>
         <td class="px-3 py-2">${objToKVLines(item.by_subject)}</td>
         <td class="px-3 py-2">${objToKVLines(item.by_class)}</td>
         <td class="px-3 py-2">${objToKVLines(item.by_day)}</td>
@@ -97,9 +96,13 @@
             const data = await res.json();
             console.debug("[teacher-load] data:", data);
 
+            // Sắp xếp theo tên giáo viên alphabet
+            let sortedData = (data && data.length)
+                ? data.slice().sort((a, b) => a.teacher_name.localeCompare(b.teacher_name, 'vi', {sensitivity: 'base'}))
+                : [];
             tbBody.innerHTML =
-                (data && data.length
-                    ? data.map(rowHTML).join("")
+                (sortedData.length
+                    ? sortedData.map(rowHTML).join("")
                     : `<tr><td colspan="11" class="px-3 py-3 text-slate-500 border-gray-400">Không có dữ liệu.</td></tr>`);
             setMsg(`Tổng số ${data?.length || 0} giáo viên.`);
         } catch (e) {
@@ -163,7 +166,6 @@
               <td class="px-3 py-2">${r.day_of_week}</td>
               <td class="px-3 py-2">${r.session}</td>
               <td class="px-3 py-2">${r.period}</td>
-              <td class="px-3 py-2">${r.slot_id}</td>
             </tr>`
                         )
                         .join("");
@@ -179,43 +181,6 @@
             if (e.target === modal) modal.classList.add("hidden");
         });
     }
-
-    // function bindDownloadReport() {
-    //     const downloadBtn = $("#downloadReport");
-    //     safeBind(downloadBtn, "click", function () {
-    //         const fSubject = $("#f-subject");
-    //         const fClass = $("#f-class");
-    //         const fDay = $("#f-day");
-    //         const fSession = $("#f-session");
-    //         const searchValue = $("#s-text")?.value?.trim();
-
-    //         const params = new URLSearchParams();
-    //         if (fSubject && fSubject.value.trim())
-    //             params.set("subject", fSubject.value.trim());
-    //         if (fClass && fClass.value.trim())
-    //             params.set("class_name", fClass.value.trim());
-    //         if (fDay && fDay.value) params.set("day_of_week", fDay.value);
-    //         if (fSession && fSession.value) params.set("session", fSession.value);
-    //         if (searchValue) params.set("searchValue", searchValue);
-
-    //         const url = `http://localhost:8002/api/reports/teacher_load_pdf?${params.toString()}`;
-    //         console.debug("[teacher-load] download URL:", url);
-
-    //         fetch(url)
-    //             .then(res => {
-    //                 if (!res.ok) throw new Error("Không thể tạo báo cáo");
-    //                 return res.blob();
-    //             })
-    //             .then(blob => {
-    //                 const link = document.createElement('a');
-    //                 link.href = URL.createObjectURL(blob);
-    //                 link.download = 'teacher_load_report.pdf';
-    //                 link.click();
-    //                 URL.revokeObjectURL(link.href);
-    //             })
-    //             .catch(err => alert(err.message));
-    //     });
-    // }
 
     function bindDownloadReport() {
         const btn = $("#downloadReport");

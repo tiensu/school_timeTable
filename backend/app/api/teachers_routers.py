@@ -109,7 +109,7 @@ async def import_teachers(file: UploadFile = File(...), db: Session = Depends(ge
                 raise ValueError("Thiếu mã hoặc tên giáo viên")
 
             max_weekly_lessons = int(row[2]) if pd.notna(row[2]) else 17
-            logger.info(f"Max weekly lessons for {name} (code={code}): {max_weekly_lessons}")
+            # logger.info(f"Max weekly lessons for {name} (code={code}): {max_weekly_lessons}")
             max_weekly_x = int(row[3]) if pd.notna(row[3]) else None
             # logger.info(f"Max weekly x for {name}: {max_weekly_x}")
             slot_labels = str(row[4]).split(",") if pd.notna(row[4]) else []
@@ -185,12 +185,6 @@ async def import_teachers(file: UploadFile = File(...), db: Session = Depends(ge
                 ))
                 created_cst += 1
 
-                # (tuỳ chọn) đồng bộ quan hệ phụ để query nhanh
-                # if subj not in teacher.subjects:
-                #     teacher.subjects.append(subj)
-                # if clazz not in teacher.classes:
-                #     teacher.classes.append(clazz)
-
             imported_count += 1
 
             # Cảnh báo mềm theo dòng
@@ -206,7 +200,8 @@ async def import_teachers(file: UploadFile = File(...), db: Session = Depends(ge
 
         except Exception as e:
             logger.error(f"Lỗi import tại dòng {index}: {e}")
-            error_lst.append(f"Dòng {index+1} ({code if 'code' in locals() else 'N/A'}) - Lỗi: {e}")
+            error_lst.append(f"Dòng {index} ({code if 'code' in locals() else 'N/A'}) - Lỗi: {e}")
+        # break
 
     db.commit()
     return {
@@ -325,3 +320,4 @@ def delete_multiple_teachers(req: TeacherDeleteRequest, db: Session = Depends(ge
         raise HTTPException(status_code=404, detail="No matching teacher found to delete.")
     
     return {"deleted": deleted_count, "message": f"Đã xóa {deleted_count} giáo viên thành công!"}
+

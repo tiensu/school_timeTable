@@ -184,12 +184,17 @@ def generate_timetable(db: Session = Depends(get_db)):
     Generate a new timetable.
     """
     result = gen_timetable()
-    if not result["success"]:
-        # Trả về lỗi 400 kèm message
-        raise HTTPException(status_code=400, detail=result)
-    
-    # return {"status": "success", "message": result["message"]}
-    return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"detail": result["message"]}
+    if not result.get("success", False):
+        # Trả về lỗi 400 kèm chi tiết để frontend hiển thị
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": result.get("message", "Không tạo được thời khóa biểu."),
+                "subject_missing": result.get("subject_missing", {}),
+                "class_subject_missing": result.get("class_subject_missing", {})
+            }
         )
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"detail": result.get("message", "Tạo thời khóa biểu thành công.")}
+    )

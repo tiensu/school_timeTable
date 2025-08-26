@@ -55,12 +55,6 @@
             </div>
 
             <div class="d-flex align-items-center flex-wrap">
-                <button class="btn btn-success btn-sm mr-2" data-toggle="modal" data-target="#addClassModal">
-                    <i class="fas fa-plus"></i> Thêm lớp mới
-                </button>
-                <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#confirmDeleteModal">
-                    <i class="fas fa-trash-alt"></i> Xóa lớp
-                </button>
                 <div class="d-flex align-items-center gap-2">
                     <span id="currentUser" class="text-secondary small"></span>
                     <button id="btnLogout" class="btn btn-warning btn-sm">
@@ -72,13 +66,11 @@
         <table class="table table-striped table-hover table-bordered">
             <thead>
                 <tr class="text-center">
-                    <th><input type="checkbox" id="selectAll" /></th>
                     <th style="width: 50px;">#</th>
                     <th>Tên Lớp</th>
                     <th>GV Chủ Nhiệm</th>
                     <th>Lớp Chuyên Đề</th>
                     <th>Môn Học - Giáo Viên</th>
-                    <th>Thao Tác</th>
                 </tr>
             </thead>
             <tbody id="classTableBody">
@@ -102,86 +94,6 @@
             <!-- Hàng dưới: pagination -->
             <div>
                 <ul class="pagination" id="pagination" style="margin-left: 0;"></ul>
-            </div>
-        </div>
-
-
-        <!-- Add Class Modal -->
-        <div id="addClassModal" class="modal fade">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <form id="classForm" onsubmit="event.preventDefault(); addClass();">
-                        <div class="modal-header bg-dark text-white">
-                            <h4 class="modal-title">Thêm lớp mới</h4>
-                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="form-group">
-                                <label>Tên lớp</label>
-                                <input type="text" id="className" class="form-control" required />
-                            </div>
-                            <div class="form-group">
-                                <label>Khối</label>
-                                <select id="classGrade" class="form-control" required>
-                                    <option value="10">Khối 10</option>
-                                    <option value="11">Khối 11</option>
-                                    <option value="12">Khối 12</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Sĩ số</label>
-                                <input type="number" id="classSize" class="form-control" required />
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <input type="button" class="btn btn-default" data-dismiss="modal" value="Hủy" />
-                            <input type="submit" class="btn btn-success" value="Thêm" />
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Delete Single Class Modal -->
-        <div id="deleteSingleModal" class="modal fade">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h4 class="modal-title">Xác nhận xóa lớp học</h4>
-                        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <p id="deleteMessage">Bạn có chắc chắn muốn xóa lớp này?</p>
-                        <input type="hidden" id="deleteClassId">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
-                        <button type="button" class="btn btn-danger" id="confirmDeleteSingleBtn">Xóa</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-        <!-- Modal xác nhận xoá nhiều-->
-        <div class="modal fade" id="confirmDeleteModal" tabindex="-1" role="dialog" aria-labelledby="confirmModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h4 class="modal-title" id="confirmModalLabel">Xác nhận xoá lớp</h4>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Đóng">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        Bạn có chắc chắn muốn xoá các lớp đã chọn không? Hành động này không thể hoàn tác.
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Huỷ</button>
-                        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Xoá</button>
-                    </div>
-                </div>
             </div>
         </div>
 

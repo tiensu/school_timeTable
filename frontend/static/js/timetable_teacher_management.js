@@ -27,7 +27,12 @@ let subjectColorMap = new Map();
 let viewMode = "pretty"; // "pretty" | "compactTeacher"
 
 function subjectLabel(code, name) {
-    return name || code;
+    // Bỏ số (10, 11, 12) ở cuối tên môn học
+    if (name) {
+        return name.replace(/\s*(10|11|12)\s*$/, "").trim();
+    }
+    // Nếu không có tên, dùng code và cũng bỏ số ở cuối nếu có
+    return code.replace(/(10|11|12)$/, "");
 }
 
 function colorForSubjectKey(code) {
@@ -144,10 +149,33 @@ function applyFilters(items) {
 
 function populateFilters() {
     const selClass = document.getElementById("filterClass");
-    selClass.innerHTML = `<option value="">— Tất cả —</option>` + classes.map(c => `<option value="${c.name}">${c.name}</option>`).join("");
+    // Sắp xếp lớp theo thứ tự tự nhiên (natural sort)
+    const sortedClasses = [...classes].sort((a, b) => {
+        const nameA = a.name || "";
+        const nameB = b.name || "";
+        // Tách phần số ở cuối tên lớp
+        const matchA = nameA.match(/(\d+)$/);
+        const matchB = nameB.match(/(\d+)$/);
+        if (matchA && matchB) {
+            const prefixA = nameA.slice(0, matchA.index);
+            const prefixB = nameB.slice(0, matchB.index);
+            if (prefixA === prefixB) {
+                return Number(matchA[1]) - Number(matchB[1]);
+            }
+            return prefixA.localeCompare(prefixB);
+        }
+        return nameA.localeCompare(nameB);
+    });
+    selClass.innerHTML = `<option value="">— Tất cả —</option>` + sortedClasses.map(c => `<option value="${c.name}">${c.name}</option>`).join("");
 
     const selTeacher = document.getElementById("filterTeacher");
-    selTeacher.innerHTML = `<option value="">— Tất cả —</option>` + teachers.map(t => `<option value="${t.code}">${t.name || t.code}</option>`).join("");
+    // Sắp xếp giáo viên theo tên (hoặc code nếu không có tên)
+    const sortedTeachers = [...teachers].sort((a, b) => {
+        const nameA = (a.name || a.code || "").toString().toLowerCase();
+        const nameB = (b.name || b.code || "").toString().toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
+    selTeacher.innerHTML = `<option value="">— Tất cả —</option>` + sortedTeachers.map(t => `<option value="${t.code}">${t.name || t.code}</option>`).join("");
 }
 
 function buildLegend() {
@@ -247,7 +275,7 @@ function renderGrid() {
             }
 
             return `<div class="border-b last:border-b-0">
-                <table class="w-full border-separate" style="border-spacing:0">
+                <table class="w-full " style="border-spacing:0">
                   ${header}
                   <tbody>${bodyRows}</tbody>
                 </table>
@@ -361,7 +389,7 @@ function renderGridCompactByTeacher() {
         if (hasData) {
             allTables += `
         <div class="border border-slate-400 rounded-2xl overflow-hidden mb-6" style="border-width:2px;">
-          <table class="w-full border-separate" style="border-spacing:0; font-size:12px;">
+          <table class="w-full " style="border-spacing:0; font-size:12px;">
             ${thead}
             <tbody>${tbody}</tbody>
           </table>

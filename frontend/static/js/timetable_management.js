@@ -194,12 +194,14 @@ function renderGridCompactByGrade() {
     let htmlAll = "";
     const orderedGrades = Array.from(byGrade.keys()).sort(); // chỉ có "12"
 
-        for (const grade of orderedGrades) {
-                const classList = byGrade.get(grade);
-                if (!classList || !classList.length) continue;
+    for (const grade of orderedGrades) {
+        let classList = byGrade.get(grade);
+        if (!classList || !classList.length) continue;
+        // Sắp xếp lại thứ tự lớp
+        classList = sortClassNames(classList);
 
-                // THEAD: Thứ | Tiết | ...các lớp
-                const thead = `
+        // THEAD: Thứ | Tiết | ...các lớp
+        const thead = `
             <thead>
                 <tr>
                     <th class="border text-center align-middle" style="width:40px">THỨ</th>
@@ -284,10 +286,33 @@ async function fetchJSON(url) {
 
 function populateFilters() {
     const selClass = document.getElementById("filterClass");
-    selClass.innerHTML = `<option value="">— Tất cả —</option>` + classes.map(c => `<option value="${c.name}">${c.name}</option>`).join("");
+    // Sắp xếp lớp theo thứ tự tự nhiên (natural sort)
+    const sortedClasses = [...classes].sort((a, b) => {
+        const nameA = a.name || "";
+        const nameB = b.name || "";
+        // Tách phần số ở cuối tên lớp
+        const matchA = nameA.match(/(\d+)$/);
+        const matchB = nameB.match(/(\d+)$/);
+        if (matchA && matchB) {
+            const prefixA = nameA.slice(0, matchA.index);
+            const prefixB = nameB.slice(0, matchB.index);
+            if (prefixA === prefixB) {
+                return Number(matchA[1]) - Number(matchB[1]);
+            }
+            return prefixA.localeCompare(prefixB);
+        }
+        return nameA.localeCompare(nameB);
+    });
+    selClass.innerHTML = `<option value="">— Tất cả —</option>` + sortedClasses.map(c => `<option value="${c.name}">${c.name}</option>`).join("");
 
     const selTeacher = document.getElementById("filterTeacher");
-    selTeacher.innerHTML = `<option value="">— Tất cả —</option>` + teachers.map(t => `<option value="${t.code}">${t.name || t.code}</option>`).join("");
+    // Sắp xếp giáo viên theo tên (hoặc code nếu không có tên)
+    const sortedTeachers = [...teachers].sort((a, b) => {
+        const nameA = (a.name || a.code || "").toString().toLowerCase();
+        const nameB = (b.name || b.code || "").toString().toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
+    selTeacher.innerHTML = `<option value="">— Tất cả —</option>` + sortedTeachers.map(t => `<option value="${t.code}">${t.name || t.code}</option>`).join("");
 }
 
 function buildLegend() {
@@ -342,6 +367,25 @@ function applyFilters(items) {
     });
 }
 
+// Hàm sort lớp theo thứ tự tự nhiên: 12A1, 12A2, ..., 12A12
+function sortClassNames(classNames) {
+    return [...classNames].sort((a, b) => {
+        // Ưu tiên khối 12, sau đó theo số thứ tự
+        const reg = /^(\d+)([A-Z]+)(\d+)$/;
+        const ma = a.match(reg);
+        const mb = b.match(reg);
+        if (ma && mb) {
+            // So sánh khối
+            if (ma[1] !== mb[1]) return Number(ma[1]) - Number(mb[1]);
+            // So sánh nhóm (A, B, ...)
+            if (ma[2] !== mb[2]) return ma[2].localeCompare(mb[2]);
+            // So sánh số thứ tự
+            return Number(ma[3]) - Number(mb[3]);
+        }
+        return a.localeCompare(b);
+    });
+}
+
 function renderGrid() {
     if (viewMode === "compactGrade") {
         renderGridCompactByGrade();
@@ -354,7 +398,8 @@ function renderGrid() {
         for (const it of items) (byClass[it.class_name] ||= []).push(it);
 
         const wrapper = document.getElementById("gridWrapper");
-        const classNames = Object.keys(byClass).sort();
+        // Sắp xếp lại thứ tự lớp
+        const classNames = sortClassNames(Object.keys(byClass));
         if (!classNames.length) {
             wrapper.innerHTML = `<div class="p-8 text-center text-slate-500">Không có dữ liệu theo bộ lọc.</div>`;
             return;
@@ -390,9 +435,11 @@ function renderGrid() {
                         const cellItems = cellMap.get(key) || [];
                         const html = cellItems.map(ci => {
                             const color = colorForSubjectKey(ci.subject_code);
+                            // Bỏ số (10, 11, 12) sau tên môn học
+                            const subjectName = ci.subject_name.replace(/(10|11|12)$/, "").trim();
                             return `<div class="cell p-2 rounded-xl border border-slate-200 hover:shadow transition">
                         <div class="badge ${color} print-bg inline-block mb-1">
-                          ${subjectLabel(ci.subject_code, ci.subject_name)}
+                          ${subjectName}
                         </div>
                         <div class=" font-medium">${ci.teacher_name || ci.teacher_code}</div>
                       </div>`;
@@ -405,7 +452,7 @@ function renderGrid() {
             }
 
             return `<div class="border-b last:border-b-0">
-                <table class="w-full border-separate" style="border-spacing:0">
+                <table class="w-full " style="border-spacing:0">
                   ${header}
                   <tbody>${bodyRows}</tbody>
                 </table>
@@ -520,7 +567,9 @@ function renderGridCompactAllClasses() {
     });
 
     // Danh sách cột (lớp)
-    let classList = classes.map(c => c.name).sort();
+    let classList = classes.map(c => c.name);
+    // Sắp xếp lại thứ tự lớp
+    classList = sortClassNames(classList);
     // Nếu người dùng cố tình chọn 1 lớp, ta vẫn tôn trọng:
     const sel = document.getElementById("filterClass").value.trim();
     if (sel) classList = [sel];
@@ -579,7 +628,7 @@ function renderGridCompactAllClasses() {
     // Render
     wrapper.innerHTML = `
     <div class="border rounded-2xl overflow-hidden">
-      <table class="w-full border-separate " style="border-spacing:0">
+      <table class="w-full  " style="border-spacing:0">
         ${thead}
         <tbody>${tbody}</tbody>
       </table>
@@ -592,19 +641,19 @@ function renderErrorTable(subjectMissing, classSubjectMissing) {
     let html = `<strong>❌ Không thể tạo thời khóa biểu do thiếu giáo viên.</strong>`;
 
     // Thiếu theo môn học
-    if (subjectMissing && Object.keys(subjectMissing).length > 0) {
-        html += `<p class="mt-2"><strong>Thiếu theo môn học:</strong></p>`;
-        html += `<table class="table table-sm table-bordered tkb-missing-table">
-                    <colgroup>
-                        <col style="width: 70%;">
-                        <col style="width: 30%;">
-                    </colgroup>
-                    <thead><tr><th>Môn</th><th>Số tiết thiếu</th></tr></thead><tbody>`;
-        for (const [subj, miss] of Object.entries(subjectMissing)) {
-            html += `<tr><td>${subj}</td><td>${miss}</td></tr>`;
-        }
-        html += `</tbody></table>`;
-    }
+    // if (subjectMissing && Object.keys(subjectMissing).length > 0) {
+    //     html += `<p class="mt-2"><strong>Thiếu theo môn học:</strong></p>`;
+    //     html += `<table class="table table-sm table-bordered tkb-missing-table">
+    //                 <colgroup>
+    //                     <col style="width: 70%;">
+    //                     <col style="width: 30%;">
+    //                 </colgroup>
+    //                 <thead><tr><th>Môn</th><th>Số tiết thiếu</th></tr></thead><tbody>`;
+    //     for (const [subj, miss] of Object.entries(subjectMissing)) {
+    //         html += `<tr><td>${subj}</td><td>${miss}</td></tr>`;
+    //     }
+    //     html += `</tbody></table>`;
+    // }
 
     // Thiếu theo lớp – môn
     if (classSubjectMissing && Object.keys(classSubjectMissing).length > 0) {
@@ -614,7 +663,7 @@ function renderErrorTable(subjectMissing, classSubjectMissing) {
                         <col style="width: 70%;">
                         <col style="width: 30%;">
                     </colgroup>
-                    <thead><tr><th>Lớp – Môn</th><th>Số tiết thiếu</th></tr></thead><tbody>`;
+                    <thead><tr><th>Lớp – Môn</th><th>Số tiết thiếu Giáo viên</th></tr></thead><tbody>`;
         for (const [clsSubj, miss] of Object.entries(classSubjectMissing)) {
             html += `<tr><td>${clsSubj}</td><td>${miss}</td></tr>`;
         }

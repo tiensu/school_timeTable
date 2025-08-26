@@ -66,7 +66,7 @@ async def import_classes(file: UploadFile = File(...), db: Session = Depends(get
             subject_codes = [code.strip() for code in str(row[1]).split(",")] if pd.notna(row[1]) else []
             # logger.info(f"Processing class {name} with subjects: {subject_codes}")
             subjects = db.query(Subject).filter(Subject.code.in_(subject_codes)).all()
-            logger.info(f"Found subjects for class {name}: {[sub.name for sub in subjects]}")
+            # logger.info(f"Found subjects for class {name}: {[sub.name for sub in subjects]}")
             # Thêm lớp mới
             class_obj = Class(
                 name=name, 
@@ -76,8 +76,8 @@ async def import_classes(file: UploadFile = File(...), db: Session = Depends(get
             db.add(class_obj)
             imported_count += 1
         except Exception as e:
-            duplicated.append(f"Row {idx+1} (Lỗi: {str(e)})")
-            logger.error(f"Error processing row {idx+1}: {e}")
+            duplicated.append(f"Row {idx} (Lỗi: {str(e)})")
+            logger.error(f"Error processing row {idx}: {e}")
 
     db.commit()
 
@@ -111,7 +111,7 @@ def get_classes(skip: int = 0, limit: int = 10, search: str = ""):
         for st in subject_teachers:
             subjects = session.query(Subject).filter(Subject.code == st.subject_code).first()
             teachers = session.query(Teacher).filter(Teacher.code == st.teacher_code).first()
-            subjects_with_teachers.append(f"{subjects.name}-{teachers.name}")
+            subjects_with_teachers.append(f"{subjects.name[:-3]} - {teachers.name}")
         result.append({
             **classes_schema.ClassRead.from_orm(cls).dict(),
             "index": skip + i + 1,
@@ -128,6 +128,13 @@ def get_classes(skip: int = 0, limit: int = 10, search: str = ""):
 @router.get("/classes/count")
 def get_class_count(db: Session = Depends(get_db)):
     return {"count": db.query(Class).count()}
+
+@router.get("/classes/names")
+def get_class_names(db: Session = Depends(get_db)):
+    class_names = db.query(Class.name).all()
+    result = [name for name, in class_names]
+    logger.info(f'classNames: {result}')
+    return {"class_names": result}
 
 @router.put("/classes/{class_id}")
 def update_class(class_id: int, class_update: classes_schema.ClassCreate, db: Session = Depends(get_db)):

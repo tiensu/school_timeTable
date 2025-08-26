@@ -36,31 +36,17 @@ async function fetchClasses(page = 1) {
         data.forEach(cls => {
             table.innerHTML += `
             <tr class="text-center">
-                <td><input type="checkbox" class="row-checkbox" value="${cls.id}"></td>
                 <td style="vertical-align: middle;">${cls.index}</td>
                 <td style="vertical-align: middle;">${cls.name}</td>
                 <td style="vertical-align: middle;">${cls.class_advisor || "Chưa có"}</td>
                 <td style="vertical-align: middle;">${cls.specialized_class || "Không có"}</td>
                 <td style="vertical-align: middle;">${cls.subjects_with_teachers.join("<br>") || "Không có"}</td>
-                <td style="vertical-align: middle;">
-                <a href="javascript:void(0)" class="edit" onclick="enableEdit(this, ${cls.id})">
-                    <i class="material-icons" data-toggle="tooltip" title="Sửa">&#xE254;</i>
-                </a>
-                <a href="javascript:void(0)" class="save" style="display: none;" onclick="saveEdit(this, ${cls.id})">
-                    <i class="material-icons" data-toggle="tooltip" title="Lưu">&#xE161;</i>
-                </a>
-                <a href="#" class="delete" onclick="showDeleteModal(${cls.id}, '${cls.name}')"><i class="material-icons" title="Delete">&#xE872;</i>
-                </a>
-                </td>
-
             </tr>
         `;
         });
 
         // render phân trang
         renderPagination(totalPages, currentPage);
-        
-        document.getElementById("selectAll").checked = false;
 
         // ✅ Cập nhật hint text
         const startEntry = skip + 1;
@@ -76,67 +62,6 @@ async function fetchClasses(page = 1) {
         showToast("Lỗi khi tải danh sách lớp học", "danger");
         console.error(err);
     }
-}
-
-function enableEdit(el, classId) {
-    const row = el.closest("tr");
-    const editableIndexes = [2, 3, 4]; // Chỉ edit Name, Grade, Student Count
-    row.querySelectorAll("td").forEach((td, index) => {
-        if (index === 3) {
-            td.innerHTML = `<select class="form-control form-control-sm">
-                <option value="10" ${td.textContent.trim() === "Khối 10" ? "selected" : ""}>Khối 10</option>
-                <option value="11" ${td.textContent.trim() === "Khối 11" ? "selected" : ""}>Khối 11</option>
-                <option value="12" ${td.textContent.trim() === "Khối 12" ? "selected" : ""}>Khối 12</option>
-            </select>`;
-        } else if (editableIndexes.includes(index)) {
-            const value = td.textContent.trim();
-            td.innerHTML = `<input type="text" class="form-control form-control-sm" value="${value}">`;
-        }
-    });
-
-    row.querySelector(".edit").style.display = "none";
-    row.querySelector(".save").style.display = "inline-block";
-    row.querySelector(".delete").style.display = "none";
-}
-
-async function saveEdit(el, classId) {
-    const row = el.closest("tr");
-    const inputs = row.querySelectorAll("td input");
-    const selects = row.querySelectorAll("td select");
-    const name = inputs[0].value.trim();
-    const grade = parseInt(selects[0].value);
-    const student_count = parseInt(inputs[2].value);
-    const updatedValues = {
-        name: name,
-        grade: grade,
-        student_count: student_count
-    };
-    console.log("Updated values:", updatedValues);
-    if (!validateClassData(name, grade, student_count)) return;
-
-    const res = await fetch(`http://localhost:8002/classes/${classId}`, {
-        method: "PUT",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedValues)
-    });
-    if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.detail || "Lỗi khi xóa lớp.");
-    }
-    const result = await res.json();
-    showToast(result.message || "Đã cập nhật lớp");
-
-    // Set lại từng cell bằng đúng giá trị bạn vừa dùng
-    // Quay lại hiển thị bình thường
-    row.querySelectorAll("td:not(:first-child):not(:last-child)").forEach((td, idx) => {
-        if (idx === 1) td.innerHTML = updatedValues.name;
-        if (idx === 2) td.innerHTML = updatedValues.grade === 10 ? "Khối 10" : updatedValues.grade === 11 ? "Khối 11" : "Khối 12";
-        if (idx === 3) td.innerHTML = updatedValues.student_count;
-    });
-
-    row.querySelector(".edit").style.display = "inline-block";
-    row.querySelector(".save").style.display = "none";
-    row.querySelector(".delete").style.display = "inline-block";
 }
 
 function renderPagination(totalPages, currentPage) {
@@ -210,46 +135,6 @@ function renderPagination(totalPages, currentPage) {
     container.appendChild(createPageButton("Next", currentPage + 1, false, currentPage === totalPages));
 }
 
-async function addClass() {
-    const name = document.getElementById("className").value.trim();
-    const grade = parseInt(document.getElementById("classGrade").value);
-    const size = parseInt(document.getElementById("classSize").value);
-
-    if (!validateClassData(name, grade, size)) return;
-
-    try {
-        const response = await fetch("http://localhost:8002/classes", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                name: name,
-                grade: grade,
-                student_count: size
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            showToast(error.detail || "Lỗi khi thêm lớp.", "danger");
-            return;
-        }
-
-        // Đóng modal (nếu dùng Bootstrap 3)
-        $("#addClassModal").modal("hide");
-
-        // Reset form
-        document.getElementById("classForm").reset();
-
-        // Refresh bảng
-        fetchClasses();
-    } catch (err) {
-        console.error("❌ Thêm lớp thất bại:", err);
-        alert("Lỗi: " + err.message);
-    }
-}
-
 async function uploadExcel() {
     const fileInput = document.getElementById("excelFile");
     const file = fileInput.files[0];
@@ -295,49 +180,6 @@ function goToPage(page) {
     fetchClasses();
 }
 
-function validateClassData(name, grade, student_count) {
-    if (!name || name.trim() === "") {
-        showToast("Tên lớp không được để trống", "danger");
-        return false;
-    }
-    if (isNaN(grade) || grade < 1 || grade > 12) {
-        showToast("Khối lớp phải là số từ 1 đến 12", "danger");
-        return false;
-    }
-    if (isNaN(student_count) || student_count < 1 || student_count > 100) {
-        showToast("Sĩ số lớp phải là số từ 1 đến 100", "danger");
-        return false;
-    }
-    return true;
-}
-
-async function deleteClassById(classId) {
-
-    try {
-        const res = await fetch(`http://localhost:8002/classes/${classId}`, {
-            method: 'DELETE'
-        });
-        if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.detail || "Lỗi khi xóa lớp.");
-        }
-        const result = await res.json();
-        // console.log("result: ", result)
-        showToast(result.message, "success");
-        fetchClasses(currentPage); // reload lại bảng
-    } catch (err) {
-        console.error("❌ Xóa lớp thất bại:", err);
-        alert("Lỗi: " + err.message);
-    }
-}
-
-function showDeleteModal(classId, className) {
-    document.getElementById("deleteClassId").value = classId;
-    document.getElementById("deleteMessage").textContent =
-        `Bạn có chắc chắn muốn xóa lớp "${className}" không?`;
-    $("#deleteSingleModal").modal("show");
-}
-
 function showToast(message, type = "success") {
   const toast = document.createElement("div");
   toast.className = `toast-message bg-${type}`;
@@ -372,63 +214,12 @@ function showToast(message, type = "success") {
   }, 3000);
 }
 
-async function deleteSelectedClasses() {
-    const selectedIds = Array.from(document.querySelectorAll('.row-checkbox:checked'))
-        .map(cb => parseInt(cb.value));
-
-    if (selectedIds.length === 0) {
-        // alert("Vui lòng chọn ít nhất 1 lớp để xóa.");
-        showToast("Vui lòng chọn ít nhất 1 lớp để xóa.", "danger")
-        return;
-    }
-    console.log("selectedIds:", selectedIds)
-    try {
-        const res = await fetch("http://localhost:8002/classes/delete-multiple", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ class_ids: selectedIds })
-        });
-
-        const result = await res.json();
-        // Đóng modal
-        $('#confirmDeleteModal').modal('hide');
-        showToast("Xóa lớp thành công.", "success");  // màu xanh
-
-        $("#selectAll").prop("checked", false);
-
-        fetchClasses(currentPage);  // Refresh danh sách
-    } catch (err) {
-        showToast("Xảy ra lỗi khi xóa lớp học.", "danger");   // màu đỏ
-    }
-}
-
 $(document).ready(function () {
-    $("#confirmDeleteBtn").click(function () {
-        deleteSelectedClasses()
-    });
-
-    // Khi click vào checkbox "Chọn tất cả"
-    $("#selectAll").on("change", function () {
-        $(".row-checkbox").prop("checked", this.checked);
-    });
-
-    // Khi một checkbox dòng bị thay đổi
-    $(document).on("change", ".row-checkbox", function () {
-        const all = $(".row-checkbox").length;
-        const checked = $(".row-checkbox:checked").length;
-        $("#selectAll").prop("checked", all === checked);
-    });
 
     $("#searchInput").keyup(function () {
         const searchValue = $(this).val().trim();
         currentSearch = searchValue; // Cập nhật biến tìm kiếm
         fetchClasses(1); // Tải lại trang đầu tiên với từ khóa tìm kiếm mới
-    });
-
-    $("#confirmDeleteSingleBtn").click(function () {
-        const classId = document.getElementById("deleteClassId").value;
-        deleteClassById(classId);
-        $("#deleteSingleModal").modal("hide");
     });
 
     $("#pageSizeSelector").click(function () {
